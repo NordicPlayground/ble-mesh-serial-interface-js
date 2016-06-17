@@ -1,0 +1,35 @@
+{
+  "name": "ble-mesh-serial-interface-js",
+  "version": "0.0.1",
+  "description": "An npm package for Node.js that provides an API to control a router node in a BLE mesh network via the serial port.",
+  "main": "index.js",
+  "directories": {
+    "doc": "doc"
+  },
+  "scripts": {
+    "test": "mocha --reporter spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mjdietzx/ble-mesh-serial-interface-js.git"
+  },
+  "keywords": [
+    "nRF5",
+    "ble",
+    "mesh",
+    "Nordic",
+    "Semiconductor",
+    "bluetooth",
+    "iot"
+  ],
+  "author": "Michael Dietz <mjdietz2@illinois.edu>",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/mjdietzx/ble-mesh-serial-interface-js/issues"
+  },
+  "homepage": "https://github.com/mjdietzx/ble-mesh-serial-interface-js#readme",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.5.3"
+  }
+}
