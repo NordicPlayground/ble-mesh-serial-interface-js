@@ -31,5 +31,8 @@
   "devDependencies": {
     "chai": "^3.5.0",
     "mocha": "^2.5.3"
+  },
+  "dependencies": {
+    "serialport": "^3.1.2"
   }
 }
