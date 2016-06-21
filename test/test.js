@@ -88,4 +88,44 @@ describe('#serial interface unit tests', () => {
 
       index.radioReset(callback);
     });
+
+    it('prompts the slave to init the mesh', done => {
+      let callback = err => {
+        if (err) {
+          console.log(err);
+          expect(false).to.equal(true);
+        }
+        done();
+      }
+
+      index.init(0x8E89BED6, 5, 38, callback);
+    });
+
+    it('prompts the slave to return its access address', done => {
+      const expected_result = 'd6be898e'; // TODO: Figure out what is going on. Little endian?.
+
+      let callback = (err, res) => {
+        if (err) {
+          console.log(err);
+        }
+        expect(res).to.equal(expected_result);
+        done();
+      }
+
+      index.accessAddrGet(callback);
+    });
+
+    it('prompts the slave to return its advertising channel', done => {
+      const expected_result = '26';
+
+      let callback = (err, res) => {
+        if (err) {
+          console.log(err);
+        }
+        expect(res).to.equal(expected_result);
+        done();
+      }
+
+      index.channelGet(callback);
+    });
 });

@@ -8,7 +8,11 @@ const SerialPort = require('serialport');
 const commandOpCodes = new Enum({
                                 'ECHO' : 0x02,
                                 'RADIO_RESET' : 0x0e,
-                                'BUILD_VERSION_GET' : 0x7b});
+                                'INIT' : 0x70,
+                                'BUILD_VERSION_GET' : 0x7b,
+                                'ACCESS_ADDR_GET' : 0x7c,
+                                'CHANNEL_GET' : 0x7d
+                                });
 
 let port = new SerialPort.SerialPort('COM44', {
   baudRate: 115200,
@@ -21,13 +25,13 @@ port.on('error', err => {
   }
 });
 
-port.on('data', err => {
+/*port.on('data', err => {
   if (err) {
     console.log(err);
   } else {
     console.log(data.toString('hex'));
   }
-});
+});*/
 
 exports.commandOpCodes = commandOpCodes;
 exports.port = port;
@@ -49,13 +53,96 @@ exports.echo = buffer => {
   });
 }
 
+/** @brief initialization of rcb_mesh
+ *  @details
+ *  promts the slave to call rbc_mesh_init
+ *  @param accessAddr pointer to 4 bytes containing the address
+ *  @param chan Bluetooth channel to use. Must be 37, 38 or 39
+ *  @param handleCount amount of handles in the system
+ *  @param advInt_ms the lowest possible transmission interval
+ *  @return True if the data was successfully queued for sending,
+ *  false if there is no more space to store messages to send.
+ *  or if chanNr is incorrect
+ */
+exports.init = (accessAddr, intMinMS, channel, callback) => {
+  const command = Buffer.from([10, commandOpCodes.INIT, 0xd6, 0xbe, 0x89, 0x8e, 100, 0, 0, 0, 38]);
+  const firstExpectedResponse = '0384';
+  const secondExpectedResponse = '7000';
+
+  port.write(command, err => {
+    if (err) {
+      callback(err);
+    }
+  });
+
+  port.once('data', data => {
+    if (data.toString('hex') !== firstExpectedResponse) {
+      callback(new Error(`unexpected response from slave device: ${data.toString('hex')}`));
+    } else {
+      port.once('data', data => {
+        if (data.toString('hex') !== secondExpectedResponse) {
+          callback(new Error(`unexpected response from slave device: ${data.toString('hex')}`));
+        } else {
+          callback();
+        }
+      });
+    }
+  });
+}
+
 /** @brief read the build version
  *  @details
  *  Prompts the slave to return its build version
  */
 exports.buildVersionGet = callback => {
   const command = Buffer.from([1, commandOpCodes.BUILD_VERSION_GET]);
-  const expectedResponse = '06847b00'; // TODO: What is Status Code?
+  const expectedResponse = '06847b00';
+
+  port.write(command, err => {
+    if (err) {
+      callback(err);
+    }
+  });
+
+  port.once('data', data => {
+    if (data.toString('hex').slice(0, 8) !== expectedResponse) {
+      callback(new Error(`unexpected response from slave device: ${data.toString('hex')}`));
+    } else {
+      callback(null, data.toString('hex').slice(8));
+    }
+  });
+}
+
+/** @brief read the advertising address
+ *  @details
+ *  promts the slave to return the advertising address specified in the initialization
+ */
+exports.accessAddrGet = callback => {
+  const command = Buffer.from([1, commandOpCodes.ACCESS_ADDR_GET]);
+  const expectedResponse = '07847c00';
+
+  port.write(command, err => {
+    if (err) {
+      callback(err);
+    }
+  });
+
+  port.once('data', data => {
+    if (data.toString('hex').slice(0, 8) !== expectedResponse) {
+      callback(new Error(`unexpected response from slave device: ${data.toString('hex')}`));
+    } else {
+      callback(null, data.toString('hex').slice(8));
+    }
+  });
+}
+
+/** @brief read the operational channel
+ *  @details
+ *  promts the slave to return the operational channel specified in the initialization
+ */
+exports.channelGet = callback => {
+  const command = Buffer.from([1, commandOpCodes.CHANNEL_GET]);
+  const expectedResponse = '04847d00';
 
   port.write(command, err => {
     if (err) {
