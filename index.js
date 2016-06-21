@@ -1,22 +1,16 @@
 'use strict';
 
-var SerialPort = require('serialport');
+const assert = require('assert');
+const SerialPort = require('serialport');
 
-/*SerialPort.list(function (err, ports) {
-  ports.forEach(function(port) {
-    console.log(port.comName);
-    console.log(port.pnpId);
-    console.log(port.manufacturer);
-  });
-});*/
 
-var port = new SerialPort.SerialPort('COM44', {
+let port = new SerialPort.SerialPort('COM44', {
   baudRate: 115200,
   rtscts: true
 });
 
-port.on('error', function(err) {
-  console.log('Error: ', err.message);
+port.on('error', err => {
+  console.log('error: ', err.message);
 })
 
 exports.port = port
@@ -25,14 +19,16 @@ exports.port = port
  *  @details
  *  Prompts the slave to echo whatever the buffer contains
  *  @param buffer memory containing data to echo
- *  @param len amount of data to send
  *  @return True if the data was successfully queued for sending,
  *  false if there is no more space to store messages to send.
  */
-exports.echo = function(buffer, len) {
-  port.write(len + '\x02' + buffer, function(err) {
+exports.echo = function(buffer) {
+  const buf = Buffer.from([buffer.length + 1, 0x02]); // length += 1, as it accounts for the opcode length (one byte) as well as data's length.
+  const command = Buffer.concat([buf, buffer]);
+
+  port.write(command, err => {
     if (err) {
-      console.log('Error when performing echo: ', err.message);
+      console.log('error when performing echo: ', err.message);
       return false;
     }
     console.log('echo command sent');
