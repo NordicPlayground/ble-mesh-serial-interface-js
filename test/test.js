@@ -7,7 +7,8 @@ var index = require('../index');
 describe('#serial interface unit tests', function() {
 
     beforeEach(function(done) {
-        index.port.flush(() => {
+        index.port.flush((error) => {
+          console.log(error);
           done();
         });
     });
@@ -61,14 +62,21 @@ describe('#serial interface unit tests', function() {
     });*/
 
     it('prompts the slave to return its build version', function(done) {
-        const expected_result = '06847b00';
+      const expected_result = '000803';
 
-        index.port.once('data', data => {
-          console.log('data: ', data.toString('hex'));
-          expect(data.toString('hex').slice(0, 8)).to.equal(expected_result);
-          done();
-        });
+      let result = res => {
+        expect(res).to.equal(expected_result);
+        done();
+      }
 
-      index.buildVersionGet();
+      index.buildVersionGet(result);
+    });
+
+    it('prompts the slave to perform a radio reset', function(done) {
+      let result = res => {
+        done();
+      }
+
+      index.radioReset(result);
     });
 });
