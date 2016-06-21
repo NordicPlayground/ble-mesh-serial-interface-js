@@ -1,8 +1,13 @@
 'use strict';
 
 const assert = require('assert');
+const Enum = require('enum');
 const SerialPort = require('serialport');
 
+
+const commandOpCodes = new Enum({
+                                'ECHO' : 0x02,
+                                'BUILD_VERSION_GET' : 0x7b})
 
 let port = new SerialPort.SerialPort('COM44', {
   baudRate: 115200,
@@ -21,7 +26,7 @@ exports.port = port;
  *  @param buffer containing bytes of data to echo
  */
 exports.echo = buffer => {
-  const buf = Buffer.from([buffer.length + 1, 0x02]); // length += 1, as it accounts for the opcode length (one byte) as well as data's length.
+  const buf = Buffer.from([buffer.length + 1, commandOpCodes.ECHO]); // length += 1, as it accounts for the opcode length (one byte) as well as data's length.
   const command = Buffer.concat([buf, buffer]);
 
   port.write(command, err => {
@@ -37,7 +42,7 @@ exports.echo = buffer => {
  *  Prompts the slave to return its build version
  */
 exports.buildVersionGet = () => {
-  const command = Buffer.from([0x01, 0x7b]);
+  const command = Buffer.from([0x01, commandOpCodes.BUILD_VERSION_GET]);
 
   port.write(command, err => {
     if (err) {
