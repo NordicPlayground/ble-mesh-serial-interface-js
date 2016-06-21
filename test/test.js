@@ -4,16 +4,18 @@ var expect = require('chai').expect;
 
 var index = require('../index');
 
-describe('#serial interface unit tests', function() {
+describe('#serial interface unit tests', () => {
 
-    beforeEach(function(done) {
-        index.port.flush((error) => {
-          console.log(error);
+    beforeEach(done => {
+        index.port.flush(err => {
+          if (err) {
+            console.log(err);
+          }
           done();
         });
     });
 
-    it('prompts slave to echo one byte back to host', function(done) {
+    it('prompts slave to echo one byte back to host', done => {
         const buffer = Buffer.from([0x01]);
         const expected_result = '028201'; // Length (1+ 1), Echo OpCode, Data
 
@@ -25,7 +27,7 @@ describe('#serial interface unit tests', function() {
         index.echo(buffer);
     });
 
-    it('prompts slave to echo two bytes back to host', function(done) {
+    it('prompts slave to echo two bytes back to host', done => {
         const buffer = Buffer.from([0x01, 0x02]);
         const expected_result = '03820102'; // Length (2 + 1?), Echo OpCode, Data
 
@@ -37,7 +39,7 @@ describe('#serial interface unit tests', function() {
         index.echo(buffer);
     });
 
-    it('prompts slave to echo max bytes back to host', function(done) {
+    it('prompts slave to echo max bytes back to host', done => {
         const buffer = Buffer.from([0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04]);
         const expected_result = '1982010203040501020304050102030405010203040501020304';
 
@@ -49,7 +51,7 @@ describe('#serial interface unit tests', function() {
         index.echo(buffer);
     });
 
-    /*it('prompts slave to echo too many bytes back to host', function(done) {
+    /*it('prompts slave to echo too many bytes back to host', done => {
         const buffer = Buffer.from([0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05]);
         const expected_result = '1a8201020304050102030405010203040501020304050102030405';
 
@@ -61,22 +63,29 @@ describe('#serial interface unit tests', function() {
       index.echo(buffer);
     });*/
 
-    it('prompts the slave to return its build version', function(done) {
+    it('prompts the slave to return its build version', done => {
       const expected_result = '000803';
 
-      let result = res => {
+      let callback = (err, res) => {
+        if (err) {
+          console.log(err);
+        }
         expect(res).to.equal(expected_result);
         done();
       }
 
-      index.buildVersionGet(result);
+      index.buildVersionGet(callback);
     });
 
-    it('prompts the slave to perform a radio reset', function(done) {
-      let result = res => {
+    it('prompts the slave to perform a radio reset', done => {
+      let callback = err => {
+        if (err) {
+          console.log(err);
+          expect(false).to.equal(true);
+        }
         done();
       }
 
-      index.radioReset(result);
+      index.radioReset(callback);
     });
 });

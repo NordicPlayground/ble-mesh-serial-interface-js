@@ -16,7 +16,17 @@ let port = new SerialPort.SerialPort('COM44', {
 });
 
 port.on('error', err => {
-  console.log('error: ', err.message);
+  if (err) {
+    console.log('error: ', err.message);
+  }
+});
+
+port.on('data', err => {
+  if (err) {
+    console.log(err);
+  } else {
+    console.log(data.toString('hex'));
+  }
 });
 
 exports.commandOpCodes = commandOpCodes;
@@ -43,20 +53,22 @@ exports.echo = buffer => {
  *  @details
  *  Prompts the slave to return its build version
  */
-exports.buildVersionGet = func => {
+exports.buildVersionGet = callback => {
   const command = Buffer.from([1, commandOpCodes.BUILD_VERSION_GET]);
-  const expected_result = '06847b00';
+  const expectedResponse = '06847b00'; // TODO: What is Status Code?
 
   port.write(command, err => {
     if (err) {
-      assert(false, `error when performing build version get: ${err.message}`);
+      callback(err);
     }
-    console.log('build version get command sent');
   });
 
   port.once('data', data => {
-    assert(data.toString('hex').slice(0, 8) === expected_result, 'the CMD_RSP or status code from the slave device is not what we are expecting');
-    func(data.toString('hex').slice(8));
+    if (data.toString('hex').slice(0, 8) !== expectedResponse) {
+      callback(new Error(`unexpected response from slave device: ${data.toString('hex')}`));
+    } else {
+      callback(null, data.toString('hex').slice(8));
+    }
   });
 }
 
@@ -68,20 +80,28 @@ exports.buildVersionGet = func => {
  *  The command does not yield a command response, but the slave will transmit
  *  a DEVICE_STARTED event when it is ready to receive initialization commands.
  */
-exports.radioReset = func => {
+exports.radioReset = callback => {
   const command = Buffer.from([1, commandOpCodes.RADIO_RESET]);
-  const device_started_event = '0481000000';
+  const deviceStartResp = '00';
+  const deviceStartedResponse = '0481020004';
 
   port.write(command, err => {
     if (err) {
-      assert(false, `error when performing build version get: ${err.message}`);
+      callback(err);
     }
-    console.log('radio reset command sent');
   });
 
   port.once('data', data => {
-    console.log(data.toString('hex'));
-    assert(data.toString('hex') === device_started_event, 'after we reset the device we did not get an expected device started event');
-    func();
+    if (data.toString('hex') !== deviceStartResp) {
+      callback(new Error(`unexpected response from slave device: ${data.toString('hex')}`));
+    } else {
+      port.once('data', data => {
+        if (data.toString('hex') !== deviceStartedResponse) {
+          callback(new Error(`unexpected response from slave device: ${data.toString('hex')}`));
+        } else {
+          callback();
+        }
+      });
+    }
   });
 }
