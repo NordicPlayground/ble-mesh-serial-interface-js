@@ -103,6 +103,43 @@ describe('#serial interface unit tests', () => {
       index.valueSet(0, Buffer.from([0x00, 0x01, 0x02]), callback);
     });
 
+    it('value get', done => {
+      const expected_result = '000102';
+      let callback = (err, data) => {
+        if (err) {
+          console.log(err);
+          expect(data.toString('hex')).to.equal(expected_result);
+        }
+        done();
+      }
+
+      index.valueGet(0, callback);
+    });
+
+    it('value enable', done => {
+      let callback = err => {
+        if (err) {
+          console.log(err);
+          expect(false).to.equal(true);
+        }
+        done();
+      }
+
+      index.valueEnable(0, callback);
+    });
+
+    it('value disable', done => {
+      let callback = err => {
+        if (err) {
+          console.log(err);
+          expect(false).to.equal(true);
+        }
+        done();
+      }
+
+      index.valueDisable(0, callback);
+    });
+
     it('prompts the slave to return its access address', done => {
       const expected_result = MESH_ACCESS_ADDR_STRING; // TODO: Figure out what is going on. Little endian?.
 

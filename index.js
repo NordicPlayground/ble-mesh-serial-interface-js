@@ -12,6 +12,8 @@ const commandOpCodes = new Enum({
                                 'START' : 0x74,
                                 'STOP' : 0x75,
                                 'VALUE_SET' : 0x71,
+                                'VALUE_ENABLE' : 0x72,
+                                'VALUE_DISABLE' : 0x73,
                                 'VALUE_GET' : 0x7a,
                                 'BUILD_VERSION_GET' : 0x7b,
                                 'ACCESS_ADDR_GET' : 0x7c,
@@ -88,8 +90,8 @@ function checkResponseAndExecuteCallback(response) {
   if (response.slice(0, expectedResponse.length).equals(expectedResponse)) {
     callback(null, response.slice(expectedResponse.length));
   } else {
-    console.log(expectedResponse);
-    console.log(response);
+    console.log('expectedResponse: ', expectedResponse);
+    console.log('response: ', response);
     callback(new Error(`unexpected response from slave device: ${response.toString('hex')}`));
   }
 }
@@ -152,6 +154,27 @@ exports.valueSet = (handle, buffer, callback) => {
   const buf = Buffer.from([3 + buffer.length, commandOpCodes.VALUE_SET, _byte(handle, 0), _byte(handle, 1)]);
   const command = Buffer.concat([buf, buffer]);
   const expectedResponse = Buffer.from([3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_SET, statusCodes.SUCCESS]);
+
+  execute(command, expectedResponse, callback);
+}
+
+exports.valueGet = (handle, callback) => { // TODO: This is hard coded and needs to be fixed! Requires big change.
+  const command = Buffer.from([3, commandOpCodes.VALUE_GET, _byte(handle, 0), _byte(handle, 1)]);
+  const expectedResponse = Buffer.from([3 + 2 + 3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_GET, statusCodes.SUCCESS, _byte(handle, 0), _byte(handle, 1)]);
+
+  execute(command, expectedResponse, callback);
+}
+
+exports.valueEnable = (handle, callback) => {
+  const command = Buffer.from([3, commandOpCodes.VALUE_ENABLE, _byte(handle, 0), _byte(handle, 1)]);
+  const expectedResponse = Buffer.from([3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_ENABLE, statusCodes.SUCCESS]);
+
+  execute(command, expectedResponse, callback);
+}
+
+exports.valueDisable = (handle, callback) => {
+  const command = Buffer.from([3, commandOpCodes.VALUE_DISABLE, _byte(handle, 0), _byte(handle, 1)]);
+  const expectedResponse = Buffer.from([3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_DISABLE, statusCodes.SUCCESS]);
 
   execute(command, expectedResponse, callback);
 }
