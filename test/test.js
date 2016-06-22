@@ -4,6 +4,14 @@ var expect = require('chai').expect;
 
 var index = require('../index');
 
+let MESH_ACCESS_ADDR = 0x8E89BED6;
+let MESH_INTERVAL_MIN_MS = 5;
+let MESH_CHANNEL = 38;
+
+let MESH_ACCESS_ADDR_STRING = 'd6be898e';
+let MESH_INTERVAL_MIN_MS_STRING = '05000000';
+let MESH_CHANNEL_STRING = '26';
+
 describe('#serial interface unit tests', () => {
 
     beforeEach(done => {
@@ -71,18 +79,6 @@ describe('#serial interface unit tests', () => {
       index.buildVersionGet(callback);
     });
 
-    it('prompts the slave to perform a radio reset', done => {
-      let callback = err => {
-        if (err) {
-          console.log(err);
-          expect(false).to.equal(true);
-        }
-        done();
-      }
-
-      index.radioReset(callback);
-    });
-
     it('prompts the slave to init the mesh', done => {
       let callback = err => {
         if (err) {
@@ -92,11 +88,23 @@ describe('#serial interface unit tests', () => {
         done();
       }
 
-      index.init(0x8E89BED6, 5, 38, callback);
+      index.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL, callback);
+    });
+
+    it('value set', done => {
+      let callback = err => {
+        if (err) {
+          console.log(err);
+          expect(false).to.equal(true);
+        }
+        done();
+      }
+
+      index.valueSet(0, Buffer.from([0x00, 0x01, 0x02]), callback);
     });
 
     it('prompts the slave to return its access address', done => {
-      const expected_result = 'd6be898e'; // TODO: Figure out what is going on. Little endian?.
+      const expected_result = MESH_ACCESS_ADDR_STRING; // TODO: Figure out what is going on. Little endian?.
 
       let callback = (err, res) => {
         if (err) {
@@ -110,7 +118,7 @@ describe('#serial interface unit tests', () => {
     });
 
     it('prompts the slave to return its advertising channel', done => {
-      const expected_result = '26';
+      const expected_result = MESH_CHANNEL_STRING;
 
       let callback = (err, res) => {
         if (err) {
@@ -123,8 +131,8 @@ describe('#serial interface unit tests', () => {
       index.channelGet(callback);
     });
 
-    it('prompts the slave to return its advertising channel', done => {
-      const expected_result = '64000000';
+    it('prompts the slave to return its min interval', done => {
+      const expected_result = MESH_INTERVAL_MIN_MS_STRING;
 
       let callback = (err, res) => {
         if (err) {
@@ -185,5 +193,17 @@ describe('#serial interface unit tests', () => {
       }
 
       index.start(callback);
+    });
+
+    it('prompts the slave to perform a radio reset', done => {
+      let callback = err => {
+        if (err) {
+          console.log(err);
+          expect(false).to.equal(true);
+        }
+        done();
+      }
+
+      index.radioReset(callback);
     });
 });
