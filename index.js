@@ -11,12 +11,62 @@ const commandOpCodes = new Enum({
                                 'INIT' : 0x70,
                                 'BUILD_VERSION_GET' : 0x7b,
                                 'ACCESS_ADDR_GET' : 0x7c,
-                                'CHANNEL_GET' : 0x7d
+                                'CHANNEL_GET' : 0x7d,
+                                'INTERVAL_MIN_GET' : 0x7f
                                 });
+
+const responseOpCodes = new Enum({
+                                 'DEVICE_STARTED' : 0x81,
+                                 'ECHO' : 0x82,
+                                 'CMD_RSP' : 0x84
+                                 });
+
+const statusCodes = new Enum ({
+                              'SUCCESS' : 0x0
+                              });
+
+let expectedResponseQueue = []; // Every time the PC sends a command to the slave device, the expected response of that command will be added to this queue.
+let callbackQueue = []; // Every time the PC sends a command to the slave device, the callback function that should be called when the response is received will be added to this queue.
 
 let port = new SerialPort.SerialPort('COM44', {
   baudRate: 115200,
   rtscts: true
+});
+
+let buildResponse = {
+  response: null,
+  length: null
+};
+
+port.on('data', data => {
+  if (buildResponse.length === null) {
+    buildResponse.length = data[0] + 1;
+    buildResponse.response = Buffer.from([]);
+  }
+
+  const remainingLength = buildResponse.length - buildResponse.response.length;
+  assert(remainingLength >= 0, 'remainingLength cannot be negative.');
+
+  if (remainingLength > 0) {
+    assert(remainingLength >= data.length, 'This case not implemented yet.');
+    buildResponse.response = Buffer.concat([buildResponse.response, data]);
+  }
+
+  if (buildResponse.length !== buildResponse.response.length) {
+    return;
+  }
+
+  const expectedResponse = expectedResponseQueue.shift();
+  const callback = callbackQueue.shift();
+
+  if (!buildResponse.response.slice(0, expectedResponse.length).equals(expectedResponse)) {
+    callback(new Error(`unexpected response from slave device: ${buildResponse.response.toString('hex')}`));
+  } else {
+    callback(null, buildResponse.response.slice(expectedResponse.length));
+  }
+
+  buildResponse.length = null;
+  buildResponse.response = null;
 });
 
 port.on('error', err => {
@@ -25,170 +75,92 @@ port.on('error', err => {
   }
 });
 
-/*port.on('data', err => {
-  if (err) {
-    console.log(err);
-  } else {
-    console.log(data.toString('hex'));
-  }
-});*/
+const writeCommand = command => {
+  port.write(command, err => {
+    if (err) {
+      assert(false, `error when sending write command to serial port: ${err.message}`);
+    }
+  });
+}
 
 exports.commandOpCodes = commandOpCodes;
 exports.port = port;
 
-/** @brief executes an echo-test
- *  @details
- *  Prompts the slave to echo whatever the buffer contains
- *  @param buffer containing bytes of data to echo
- */
-exports.echo = buffer => {
+exports.echo = (buffer, callback) => {
   const buf = Buffer.from([buffer.length + 1, commandOpCodes.ECHO]); // length += 1, as it accounts for the opcode length (one byte) as well as data's length.
   const command = Buffer.concat([buf, buffer]);
+  const expectedResponse = Buffer.from([buffer.length + 1, responseOpCodes.ECHO]);
 
-  port.write(command, err => {
-    if (err) {
-      assert(false, `error when performing echo: ${err.message}`);
-    }
-    console.log('echo command sent');
-  });
+  expectedResponseQueue.push(expectedResponse);
+  callbackQueue.push(callback);
+
+  writeCommand(command);
 }
 
-/** @brief initialization of rcb_mesh
- *  @details
- *  promts the slave to call rbc_mesh_init
- *  @param accessAddr pointer to 4 bytes containing the address
- *  @param chan Bluetooth channel to use. Must be 37, 38 or 39
- *  @param handleCount amount of handles in the system
- *  @param advInt_ms the lowest possible transmission interval
- *  @return True if the data was successfully queued for sending,
- *  false if there is no more space to store messages to send.
- *  or if chanNr is incorrect
- */
 exports.init = (accessAddr, intMinMS, channel, callback) => {
   const command = Buffer.from([10, commandOpCodes.INIT, 0xd6, 0xbe, 0x89, 0x8e, 100, 0, 0, 0, 38]);
-  const firstExpectedResponse = '0384';
-  const secondExpectedResponse = '7000';
+  const expectedResponse = Buffer.from([0x03, responseOpCodes.CMD_RSP, commandOpCodes.INIT, statusCodes.SUCCESS])
 
-  port.write(command, err => {
-    if (err) {
-      callback(err);
-    }
-  });
+  expectedResponseQueue.push(expectedResponse);
+  callbackQueue.push(callback);
 
-  port.once('data', data => {
-    if (data.toString('hex') !== firstExpectedResponse) {
-      callback(new Error(`unexpected response from slave device: ${data.toString('hex')}`));
-    } else {
-      port.once('data', data => {
-        if (data.toString('hex') !== secondExpectedResponse) {
-          callback(new Error(`unexpected response from slave device: ${data.toString('hex')}`));
-        } else {
-          callback();
-        }
-      });
-    }
-  });
+  writeCommand(command);
 }
 
-/** @brief read the build version
- *  @details
- *  Prompts the slave to return its build version
- */
 exports.buildVersionGet = callback => {
   const command = Buffer.from([1, commandOpCodes.BUILD_VERSION_GET]);
-  const expectedResponse = '06847b00';
+  const expectedResponse = Buffer.from([6, responseOpCodes.CMD_RSP, commandOpCodes.BUILD_VERSION_GET, statusCodes.SUCCESS]);
 
-  port.write(command, err => {
-    if (err) {
-      callback(err);
-    }
-  });
+  expectedResponseQueue.push(expectedResponse);
+  callbackQueue.push(callback);
 
-  port.once('data', data => {
-    if (data.toString('hex').slice(0, 8) !== expectedResponse) {
-      callback(new Error(`unexpected response from slave device: ${data.toString('hex')}`));
-    } else {
-      callback(null, data.toString('hex').slice(8));
-    }
-  });
+  writeCommand(command);
 }
 
-/** @brief read the advertising address
- *  @details
- *  promts the slave to return the advertising address specified in the initialization
- */
 exports.accessAddrGet = callback => {
   const command = Buffer.from([1, commandOpCodes.ACCESS_ADDR_GET]);
-  const expectedResponse = '07847c00';
+  const expectedResponse = Buffer.from([0x07, responseOpCodes.CMD_RSP, commandOpCodes.ACCESS_ADDR_GET, statusCodes.SUCCESS]);
 
-  port.write(command, err => {
-    if (err) {
-      callback(err);
-    }
-  });
+  expectedResponseQueue.push(expectedResponse);
+  callbackQueue.push(callback);
 
-  port.once('data', data => {
-    if (data.toString('hex').slice(0, 8) !== expectedResponse) {
-      callback(new Error(`unexpected response from slave device: ${data.toString('hex')}`));
-    } else {
-      callback(null, data.toString('hex').slice(8));
-    }
-  });
+  writeCommand(command);
 }
 
-/** @brief read the operational channel
- *  @details
- *  promts the slave to return the operational channel specified in the initialization
- */
 exports.channelGet = callback => {
   const command = Buffer.from([1, commandOpCodes.CHANNEL_GET]);
-  const expectedResponse = '04847d00';
+  const expectedResponse = Buffer.from([0x04, responseOpCodes.CMD_RSP, commandOpCodes.CHANNEL_GET, statusCodes.SUCCESS])
 
-  port.write(command, err => {
-    if (err) {
-      callback(err);
-    }
-  });
+  expectedResponseQueue.push(expectedResponse);
+  callbackQueue.push(callback);
 
-  port.once('data', data => {
-    if (data.toString('hex').slice(0, 8) !== expectedResponse) {
-      callback(new Error(`unexpected response from slave device: ${data.toString('hex')}`));
-    } else {
-      callback(null, data.toString('hex').slice(8));
-    }
-  });
+  writeCommand(command);
 }
 
-/** @brief Transmit a reset command to the slave
- *  @details
- *  The slave will do a software reset, calling NVIC_SystemReset(), effectively
- *  restarting the device, erasing all configuration and halting operation.
- *  To resume operation, the initialization process has to be redone.
- *  The command does not yield a command response, but the slave will transmit
- *  a DEVICE_STARTED event when it is ready to receive initialization commands.
- */
+exports.intervalMinGet = callback => {
+  const command = Buffer.from([1, commandOpCodes.INTERVAL_MIN_GET]);
+  const expectedResponse = Buffer.from([0x07, responseOpCodes.CMD_RSP, commandOpCodes.INTERVAL_MIN_GET, statusCodes.SUCCESS])
+
+  expectedResponseQueue.push(expectedResponse);
+  callbackQueue.push(callback);
+
+  writeCommand(command);
+ }
+
 exports.radioReset = callback => {
   const command = Buffer.from([1, commandOpCodes.RADIO_RESET]);
-  const deviceStartResp = '00';
-  const deviceStartedResponse = '0481020004';
 
-  port.write(command, err => {
-    if (err) {
-      callback(err);
-    }
-  });
+  const firstExpectedResponse = Buffer.from([0x00]);
+  const secondExpectedResponse = Buffer.from([0x04, responseOpCodes.DEVICE_STARTED, 0x02, 0x00, 0x04]);
 
-  port.once('data', data => {
-    if (data.toString('hex') !== deviceStartResp) {
-      callback(new Error(`unexpected response from slave device: ${data.toString('hex')}`));
-    } else {
-      port.once('data', data => {
-        if (data.toString('hex') !== deviceStartedResponse) {
-          callback(new Error(`unexpected response from slave device: ${data.toString('hex')}`));
-        } else {
-          callback();
-        }
-      });
-    }
-  });
+  let dummy = () => {
+    console.log('dummy');
+  }
+
+  expectedResponseQueue.push(firstExpectedResponse);
+  expectedResponseQueue.push(secondExpectedResponse);
+  callbackQueue.push(dummy);
+  callbackQueue.push(callback);
+
+  writeCommand(command);
 }

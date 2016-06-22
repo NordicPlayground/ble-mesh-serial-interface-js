@@ -16,39 +16,45 @@ describe('#serial interface unit tests', () => {
     });
 
     it('prompts slave to echo one byte back to host', done => {
-        const buffer = Buffer.from([0x01]);
-        const expected_result = '028201'; // Length (1+ 1), Echo OpCode, Data
+      const buf = Buffer.from([0x01]);
 
-        index.port.once('data', data => {
-          expect(data.toString('hex')).to.equal(expected_result);
-          done();
-        });
+      let callback = (err, res) => {
+        if (err) {
+          console.log(err);
+        }
+        expect(res.toString('hex')).to.equal(buf.toString('hex'));
+        done();
+      }
 
-        index.echo(buffer);
+      index.echo(buf, callback);
     });
 
     it('prompts slave to echo two bytes back to host', done => {
-        const buffer = Buffer.from([0x01, 0x02]);
-        const expected_result = '03820102'; // Length (2 + 1?), Echo OpCode, Data
+      const buf = Buffer.from([0x01, 0x02]);
 
-        index.port.once('data', data => {
-          expect(data.toString('hex')).to.equal(expected_result);
-          done();
-        });
+      let callback = (err, res) => {
+        if (err) {
+          console.log(err);
+        }
+        expect(res.toString('hex')).to.equal(buf.toString('hex'));
+        done();
+      }
 
-        index.echo(buffer);
+      index.echo(buf, callback);
     });
 
     it('prompts slave to echo max bytes back to host', done => {
-        const buffer = Buffer.from([0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04]);
-        const expected_result = '1982010203040501020304050102030405010203040501020304';
+      const buf = Buffer.from([0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04]);
 
-        index.port.once('data', data => {
-          expect(data.toString('hex')).to.equal(expected_result);
-          done();
-        });
+      let callback = (err, res) => {
+        if (err) {
+          console.log(err);
+        }
+        expect(res.toString('hex')).to.equal(buf.toString('hex'));
+        done();
+      }
 
-        index.echo(buffer);
+      index.echo(buf, callback);
     });
 
     /*it('prompts slave to echo too many bytes back to host', done => {
@@ -70,7 +76,7 @@ describe('#serial interface unit tests', () => {
         if (err) {
           console.log(err);
         }
-        expect(res).to.equal(expected_result);
+        expect(res.toString('hex')).to.equal(expected_result);
         done();
       }
 
@@ -108,7 +114,7 @@ describe('#serial interface unit tests', () => {
         if (err) {
           console.log(err);
         }
-        expect(res).to.equal(expected_result);
+        expect(res.toString('hex')).to.equal(expected_result);
         done();
       }
 
@@ -122,10 +128,24 @@ describe('#serial interface unit tests', () => {
         if (err) {
           console.log(err);
         }
-        expect(res).to.equal(expected_result);
+        expect(res.toString('hex')).to.equal(expected_result);
         done();
       }
 
       index.channelGet(callback);
+    });
+
+    it('prompts the slave to return its advertising channel', done => {
+      const expected_result = '64000000';
+
+      let callback = (err, res) => {
+        if (err) {
+          console.log(err);
+        }
+        expect(res.toString('hex')).to.equal(expected_result);
+        done();
+      }
+
+      index.intervalMinGet(callback);
     });
 });
