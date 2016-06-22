@@ -53,10 +53,10 @@ port.on('error', err => {
 port.on('data', data => {
   buildResponse(data, 0);
 
-  for (let i = 0; i < queue.length; i++) {
-    if (queue[i].response === null) {
+  while (true) { // checkResponseAndExecuteCallback shifts the queue so always access queue[0].
+    if (queue[0].response === null) {
       return;
-    } else if (queue[i].responseLength !== queue[i].response.length) {
+    } else if (queue[0].responseLength !== queue[0].response.length) {
       return;
     } else {
       checkResponseAndExecuteCallback();
@@ -76,7 +76,7 @@ function buildResponse(data, queueIndex) {
   if (remainingLength >= data.length) {
     queue[queueIndex].response = Buffer.concat([queue[queueIndex].response, data]);
   } else if (remainingLength < data.length) { // Multiple responses have been joined into this data event.
-    queue[queueIndex].response = Buffer.concat([queue[queueIndex].response, data[0, remainingLength]]);
+    queue[queueIndex].response = Buffer.concat([queue[queueIndex].response, data.slice(0, remainingLength)]);
     buildResponse(data.slice(remainingLength), queueIndex + 1);
   }
 }

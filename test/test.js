@@ -182,7 +182,7 @@ describe('#serial interface unit tests', () => {
       index.intervalMinGet(callback);
     });
 
-    /*it('sends multiple commands one after the other', done => {
+    it('sends multiple commands one after the other', done => {
       const buf = Buffer.from([0x01]);
 
       let callback1 = (err, res) => {
@@ -190,7 +190,6 @@ describe('#serial interface unit tests', () => {
           console.log(err);
         }
         expect(res.toString('hex')).to.equal(buf.toString('hex'));
-        done();
       }
 
       index.echo(buf, callback1);
@@ -206,7 +205,7 @@ describe('#serial interface unit tests', () => {
       }
 
       index.buildVersionGet(callback);
-    });*/
+    });
 
     it('prompts the slave to stop the mesh', done => {
       let callback = err => {
