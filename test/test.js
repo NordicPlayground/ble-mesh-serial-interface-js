@@ -5,11 +5,11 @@ var expect = require('chai').expect;
 var index = require('../index');
 
 let MESH_ACCESS_ADDR = 0x8E89BED6;
-let MESH_INTERVAL_MIN_MS = 5;
+let MESH_INTERVAL_MIN_MS = 100;
 let MESH_CHANNEL = 38;
 
 let MESH_ACCESS_ADDR_STRING = 'd6be898e';
-let MESH_INTERVAL_MIN_MS_STRING = '05000000';
+let MESH_INTERVAL_MIN_MS_STRING = '64000000';
 let MESH_CHANNEL_STRING = '26';
 
 describe('#serial interface unit tests', () => {

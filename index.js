@@ -31,10 +31,7 @@ const statusCodes = new Enum ({
                               'SUCCESS' : 0x0
                               });
 
-// TODO: combine into JSON object...
-let expectedResponseQueue = []; // Every time the host sends a command to the slave device, the expected response of that command will be added to this queue.
-let callbackQueue = []; // Every time the host sends a command to the slave device, the callback function that should be called when the response is received will be added to this queue.
-
+// Every time the host sends a command to the slave device, the expected response of that command and the callback to be called when the response is received will be added to this queue.
 let queue = [];
 
 let port = new SerialPort.SerialPort('COM44', {
@@ -83,16 +80,14 @@ function buildResponse(data) {
 }
 
 function checkResponseAndExecuteCallback(response) {
-  const contents = queue.shift();
-  const expectedResponse = contents[0];
-  const callback = contents[1];
+  const command = queue.shift();
 
-  if (response.slice(0, expectedResponse.length).equals(expectedResponse)) {
-    callback(null, response.slice(expectedResponse.length));
+  if (response.slice(0, command.expectedResponse.length).equals(command.expectedResponse)) {
+    command.callback(null, response.slice(command.expectedResponse.length));
   } else {
-    console.log('expectedResponse: ', expectedResponse);
+    console.log('command.expectedResponse: ', command.expectedResponse);
     console.log('response: ', response);
-    callback(new Error(`unexpected response from slave device: ${response.toString('hex')}`));
+    command.callback(new Error(`unexpected response from slave device: ${response.toString('hex')}`));
   }
 }
 
@@ -105,7 +100,7 @@ function writeCommand(command) {
 }
 
 function execute(command, expectedResponse, callback) {
-  queue.push([expectedResponse, callback]);
+  queue.push({expectedResponse: expectedResponse, callback: callback});
   writeCommand(command);
 }
 
@@ -120,7 +115,7 @@ exports.commandOpCodes = commandOpCodes;
 exports.port = port;
 
 exports.echo = (buffer, callback) => {
-  const buf = Buffer.from([buffer.length + 1, commandOpCodes.ECHO]); // length += 1, as it accounts for the opcode length (one byte) as well as data's length.
+  const buf = Buffer.from([buffer.length + 1, commandOpCodes.ECHO]);
   const command = Buffer.concat([buf, buffer]);
   const expectedResponse = Buffer.from([buffer.length + 1, responseOpCodes.ECHO]);
 
@@ -217,8 +212,8 @@ exports.radioReset = callback => {
     console.log('dummy');
   }
 
-  queue.push([firstExpectedResponse, dummy]);
-  queue.push([secondExpectedResponse, callback]);
+  queue.push({expectedResponse: firstExpectedResponse, callback: dummy});
+  queue.push({expectedResponse: secondExpectedResponse, callback: callback});
 
   writeCommand(command);
 }
