@@ -6,55 +6,42 @@ const SerialPort = require('serialport');
 
 
 const commandOpCodes = new Enum({
-                                'ECHO' : 0x02,
-                                'RADIO_RESET' : 0x0e,
-                                'INIT' : 0x70,
-                                'START' : 0x74,
-                                'STOP' : 0x75,
-                                'VALUE_SET' : 0x71,
-                                'VALUE_ENABLE' : 0x72,
-                                'VALUE_DISABLE' : 0x73,
-                                'VALUE_GET' : 0x7a,
-                                'BUILD_VERSION_GET' : 0x7b,
-                                'ACCESS_ADDR_GET' : 0x7c,
-                                'CHANNEL_GET' : 0x7d,
-                                'INTERVAL_MIN_GET' : 0x7f
+                                'ECHO': 0x02,
+                                'RADIO_RESET': 0x0e,
+                                'INIT': 0x70,
+                                'START': 0x74,
+                                'STOP': 0x75,
+                                'VALUE_SET': 0x71,
+                                'VALUE_ENABLE': 0x72,
+                                'VALUE_DISABLE': 0x73,
+                                'VALUE_GET': 0x7a,
+                                'BUILD_VERSION_GET': 0x7b,
+                                'ACCESS_ADDR_GET': 0x7c,
+                                'CHANNEL_GET': 0x7d,
+                                'INTERVAL_MIN_GET': 0x7f
                                 });
 
 const responseOpCodes = new Enum({
-                                 'DEVICE_STARTED' : 0x81,
-                                 'ECHO' : 0x82,
-                                 'CMD_RSP' : 0x84
+                                 'DEVICE_STARTED': 0x81,
+                                 'ECHO': 0x82,
+                                 'CMD_RSP': 0x84
                                  });
 
 const statusCodes = new Enum ({
-                              'SUCCESS' : 0x0
+                              'SUCCESS': 0x0
                               });
 
-// Every time the host sends a command to the slave device, the expected response of that command and the callback to be called when the response is received will be added to this queue.
+/**
+ * Array of objects (expectedResponse, callback, response, responseLength) used as a queue.
+ *
+ * Every time the host sends a command to the slave device, the expected response of that command and the callback to be called when the response
+ * is received will be pushed to this queue. Then they will be shifted out as data responses are received from the slave.
+ */
 let queue = [];
 
 let port = new SerialPort.SerialPort('COM44', {
   baudRate: 115200,
   rtscts: true
-});
-
-let slaveResponse = { // BUG: Is this state safe?
-  response: null,
-  length: null
-};
-
-port.on('data', data => {
-  buildResponse(data);
-
-  if (slaveResponse.length !== slaveResponse.response.length) { // The full response must be built before checking it and executing the callback.
-    return;
-  }
-
-  checkResponseAndExecuteCallback(slaveResponse.response);
-
-  slaveResponse.length = null;
-  slaveResponse.response = null;
 });
 
 port.on('error', err => {
@@ -63,45 +50,57 @@ port.on('error', err => {
   }
 });
 
-function buildResponse(data) {
-  if (slaveResponse.length === null) {
-    slaveResponse.length = data[0] + 1; // The first byte in the response, data[0], stores the length of the rest of the response in bytes.
-    slaveResponse.response = Buffer.from([]);
+port.on('data', data => {
+  buildResponse(data, 0);
+
+  for (let i = 0; i < queue.length; i++) {
+    if (queue[i].response === null) {
+      return;
+    } else if (queue[i].responseLength !== queue[i].response.length) {
+      return;
+    } else {
+      checkResponseAndExecuteCallback();
+    }
+  }
+});
+
+function buildResponse(data, queueIndex) {
+  if (queue[queueIndex].response === null) {
+    queue[queueIndex].responseLength = data[0] + 1; // The first byte in the response, data[0], stores the length of the rest of the response in bytes.
+    queue[queueIndex].response = Buffer.from([]);
   }
 
-  const remainingLength = slaveResponse.length - slaveResponse.response.length;
+  const remainingLength = queue[queueIndex].responseLength - queue[queueIndex].response.length;
   assert(remainingLength >= 0, 'remainingLength cannot be negative');
 
   if (remainingLength >= data.length) {
-    slaveResponse.response = Buffer.concat([slaveResponse.response, data]);
+    queue[queueIndex].response = Buffer.concat([queue[queueIndex].response, data]);
   } else if (remainingLength < data.length) { // Multiple responses have been joined into this data event.
-    slaveResponse.response = Buffer.concat([slaveResponse.response, data[0, remainingLength]]);
+    queue[queueIndex].response = Buffer.concat([queue[queueIndex].response, data[0, remainingLength]]);
+    buildResponse(data.slice(remainingLength), queueIndex + 1);
   }
 }
 
-function checkResponseAndExecuteCallback(response) {
+function checkResponseAndExecuteCallback() {
   const command = queue.shift();
 
-  if (response.slice(0, command.expectedResponse.length).equals(command.expectedResponse)) {
-    command.callback(null, response.slice(command.expectedResponse.length));
+  if (command.response.slice(0, command.expectedResponse.length).equals(command.expectedResponse)) {
+    command.callback(null, command.response.slice(command.expectedResponse.length));
   } else {
     console.log('command.expectedResponse: ', command.expectedResponse);
-    console.log('response: ', response);
-    command.callback(new Error(`unexpected response from slave device: ${response.toString('hex')}`));
+    console.log('command.response: ', command.response);
+    command.callback(new Error(`unexpected command.response from slave device: ${command.response.toString('hex')}`));
   }
 }
 
-function writeCommand(command) {
+function execute(command, expectedResponse, callback) {
+  queue.push({expectedResponse: expectedResponse, callback: callback, response: null, responseLength: null});
+
   port.write(command, err => {
     if (err) {
       assert(false, `error when sending write command to serial port: ${err.message}`);
     }
   });
-}
-
-function execute(command, expectedResponse, callback) {
-  queue.push({expectedResponse: expectedResponse, callback: callback});
-  writeCommand(command);
 }
 
 /**
@@ -111,7 +110,6 @@ function _byte(val, index) {
   return ((val >> (8 * index)) & 0xFF);
 }
 
-exports.commandOpCodes = commandOpCodes;
 exports.port = port;
 
 exports.echo = (buffer, callback) => {
@@ -212,8 +210,12 @@ exports.radioReset = callback => {
     console.log('dummy');
   }
 
-  queue.push({expectedResponse: firstExpectedResponse, callback: dummy});
-  queue.push({expectedResponse: secondExpectedResponse, callback: callback});
+  queue.push({expectedResponse: firstExpectedResponse, callback: dummy, response: null, responseLength: null});
+  queue.push({expectedResponse: secondExpectedResponse, callback: callback, response: null, responseLength: null});
 
-  writeCommand(command);
+  port.write(command, err => {
+    if (err) {
+      assert(false, `error when sending write command to serial port: ${err.message}`);
+    }
+  });
 }
