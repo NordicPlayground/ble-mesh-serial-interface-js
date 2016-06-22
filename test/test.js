@@ -43,10 +43,10 @@ describe('#serial interface unit tests', () => {
       index.echo(buf, callback);
     });
 
-    it('prompts slave to echo max bytes back to host', done => {
-      const buf = Buffer.from([0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04]);
+    it('prompts slave to echo too many bytes back to host', done => {
+        const buf = Buffer.from(new Array(30).fill(0xff));
 
-      let callback = (err, res) => {
+        let callback = (err, res) => {
         if (err) {
           console.log(err);
         }
@@ -56,18 +56,6 @@ describe('#serial interface unit tests', () => {
 
       index.echo(buf, callback);
     });
-
-    /*it('prompts slave to echo too many bytes back to host', done => {
-        const buffer = Buffer.from([0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05, 0x01, 0x02, 0x03, 0x04, 0x05]);
-        const expected_result = '1a8201020304050102030405010203040501020304050102030405';
-
-        index.port.once('data', data => {
-          expect(data.toString('hex')).to.equal(expected_result);
-          done();
-        });
-
-      index.echo(buffer);
-    });*/
 
     it('prompts the slave to return its build version', done => {
       const expected_result = '000803';
@@ -147,5 +135,55 @@ describe('#serial interface unit tests', () => {
       }
 
       index.intervalMinGet(callback);
+    });
+
+    /*it('sends multiple commands one after the other', done => {
+      const buf = Buffer.from([0x01]);
+
+      let callback1 = (err, res) => {
+        if (err) {
+          console.log(err);
+        }
+        expect(res.toString('hex')).to.equal(buf.toString('hex'));
+        done();
+      }
+
+      index.echo(buf, callback1);
+
+      const expected_result = '000803';
+
+      let callback = (err, res) => {
+        if (err) {
+          console.log(err);
+        }
+        expect(res.toString('hex')).to.equal(expected_result);
+        done();
+      }
+
+      index.buildVersionGet(callback);
+    });*/
+
+    it('prompts the slave to stop the mesh', done => {
+      let callback = err => {
+        if (err) {
+          console.log(err);
+          expect(false).to.equal(true);
+        }
+        done();
+      }
+
+      index.stop(callback);
+    });
+
+    it('prompts the slave to start the mesh', done => {
+      let callback = err => {
+        if (err) {
+          console.log(err);
+          expect(false).to.equal(true);
+        }
+        done();
+      }
+
+      index.start(callback);
     });
 });
