@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mjdietzx/ble-mesh-serial-interface-js.git"
+    "url": "git+https://github.com/NordicSemiconductor/ble-mesh-serial-interface-js.git"
   },
   "keywords": [
     "nRF5",
@@ -27,7 +27,7 @@
   "bugs": {
     "url": "https://github.com/mjdietzx/ble-mesh-serial-interface-js/issues"
   },
-  "homepage": "https://github.com/mjdietzx/ble-mesh-serial-interface-js#readme",
+  "homepage": "https://github.com/NordicSemiconductor/ble-mesh-serial-interface-js#readme",
   "devDependencies": {
     "chai": "^3.5.0",
     "mocha": "^2.5.3"

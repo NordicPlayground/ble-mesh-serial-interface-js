@@ -2,6 +2,7 @@
 
 const assert = require('assert');
 const EventEmitter = require('events');
+
 const SerialPort = require('serialport');
 
 const commandOpCodes = {
