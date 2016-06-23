@@ -242,4 +242,59 @@ describe('#serial interface unit tests', () => {
 
       index.radioReset(callback);
     });
+
+    it('complicated multi command test', done => {
+
+      let callback1 = err => {
+        if (err) {
+          console.log(err);
+          expect(false).to.equal(true);
+        }
+      }
+
+      index.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL, callback1);
+
+      const expected_result = MESH_ACCESS_ADDR_STRING; // TODO: Figure out what is going on. Little endian?.
+
+      let callback2 = (err, res) => {
+        if (err) {
+          console.log(err);
+        }
+        expect(res.toString('hex')).to.equal(expected_result);
+      }
+
+      index.accessAddrGet(callback2);
+
+      let callback3 = err => {
+        if (err) {
+          console.log(err);
+          expect(false).to.equal(true);
+        }
+      }
+
+      index.radioReset(callback3);
+
+      /*const buf = Buffer.from([0x01, 0x02]);
+
+      let callback4 = (err, res) => {
+        if (err) {
+          console.log(err);
+        }
+        expect(res.toString('hex')).to.equal(buf.toString('hex'));
+      }
+
+      index.echo(buf, callback4);
+
+      const expected_result1 = '000803';
+
+      let callback5 = (err, res) => {
+        if (err) {
+          console.log(err);
+        }
+        expect(res.toString('hex')).to.equal(expected_result1);
+        done();
+      }
+
+      index.buildVersionGet(callback5);*/
+    });
 });

@@ -2,6 +2,7 @@
 
 const assert = require('assert');
 const Enum = require('enum');
+const EventEmitter = require('events');
 const SerialPort = require('serialport');
 
 
@@ -53,25 +54,31 @@ port.on('error', err => {
 port.on('data', data => {
   buildResponse(data, 0);
 
+  /**
+   * Check response, multiple responses may have been received in a data event so iterate through all complete responses in the global queue.
+   */
   while (true) { // checkResponseAndExecuteCallback shifts the queue so always access queue[0].
     if (queue[0].response === null) {
       return;
     } else if (queue[0].responseLength !== queue[0].response.length) {
       return;
     } else {
-      checkResponseAndExecuteCallback();
+      checkResponseAndExecuteCallback(); // Shifts out the next element in the queue.
     }
   }
 });
 
+/**
+ * Recursive function to build a complete response from the slave when the response is divided amongst data events and/or multiple responses (or parts of responses)
+ * arrive in a single data event. Stores the response and it's associated length in the global queue.
+ */
 function buildResponse(data, queueIndex) {
   if (queue[queueIndex].response === null) {
-    queue[queueIndex].responseLength = data[0] + 1; // The first byte in the response, data[0], stores the length of the rest of the response in bytes.
     queue[queueIndex].response = Buffer.from([]);
+    queue[queueIndex].responseLength = data[0] + 1; // The first byte in the response, data[0], stores the length of the rest of the response in bytes.
   }
 
   const remainingLength = queue[queueIndex].responseLength - queue[queueIndex].response.length;
-  assert(remainingLength >= 0, 'remainingLength cannot be negative');
 
   if (remainingLength >= data.length) {
     queue[queueIndex].response = Buffer.concat([queue[queueIndex].response, data]);
@@ -81,6 +88,12 @@ function buildResponse(data, queueIndex) {
   }
 }
 
+/**
+ * This checks the complete response stored in the global queue against it's corresponding expected response. Then it executes the corresponding callback
+ * with an error and or data.
+ *
+ * Note: This modifies the global queue by shifting out the next element.
+ */
 function checkResponseAndExecuteCallback() {
   const command = queue.shift();
 
@@ -93,6 +106,9 @@ function checkResponseAndExecuteCallback() {
   }
 }
 
+/**
+ * Adds the command to the global queue and writes the command to the slave.
+ */
 function execute(command, expectedResponse, callback) {
   queue.push({expectedResponse: expectedResponse, callback: callback, response: null, responseLength: null});
 
