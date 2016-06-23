@@ -1,47 +1,47 @@
 'use strict';
 
 const assert = require('assert');
-const Enum = require('enum');
 const EventEmitter = require('events');
 const SerialPort = require('serialport');
 
+const commandOpCodes = {
+  'ECHO': 0x02,
+  'RADIO_RESET': 0x0e,
+  'INIT': 0x70,
+  'START': 0x74,
+  'STOP': 0x75,
+  'VALUE_SET': 0x71,
+  'VALUE_ENABLE': 0x72,
+  'VALUE_DISABLE': 0x73,
+  'VALUE_GET': 0x7a,
+  'BUILD_VERSION_GET': 0x7b,
+  'ACCESS_ADDR_GET': 0x7c,
+  'CHANNEL_GET': 0x7d,
+  'INTERVAL_MIN_GET': 0x7f
+};
 
-const commandOpCodes = new Enum({
-                                'ECHO': 0x02,
-                                'RADIO_RESET': 0x0e,
-                                'INIT': 0x70,
-                                'START': 0x74,
-                                'STOP': 0x75,
-                                'VALUE_SET': 0x71,
-                                'VALUE_ENABLE': 0x72,
-                                'VALUE_DISABLE': 0x73,
-                                'VALUE_GET': 0x7a,
-                                'BUILD_VERSION_GET': 0x7b,
-                                'ACCESS_ADDR_GET': 0x7c,
-                                'CHANNEL_GET': 0x7d,
-                                'INTERVAL_MIN_GET': 0x7f
-                                });
+const responseOpCodes = {
+  'DEVICE_STARTED': 0x81,
+  'ECHO': 0x82,
+  'CMD_RSP': 0x84
+};
 
-const responseOpCodes = new Enum({
-                                 'DEVICE_STARTED': 0x81,
-                                 'ECHO': 0x82,
-                                 'CMD_RSP': 0x84
-                                 });
-
-const statusCodes = new Enum ({
-                              'SUCCESS': 0x0
-                              });
+const statusCodes = {
+  'SUCCESS': 0x0
+};
 
 
-module.exports = class BLEMeshSerialInterface {
+class BLEMeshSerialInterface extends EventEmitter {
   constructor(serialPort, baudRate, rtscts) {
+    super();
+
     /**
      * Array of objects (expectedResponse, callback, response, responseLength) used as a queue.
      *
      * Every time the host sends a command to the slave device, the expected response of that command and the callback to be called when the response
      * is received will be pushed to this queue. Then they will be shifted out as data responses are received from the slave.
      */
-    this.queue = [];
+    this._queue = [];
 
     this.port = new SerialPort.SerialPort(serialPort, { // 'COM44', {
       baudRate: baudRate, // 115200
@@ -61,9 +61,9 @@ module.exports = class BLEMeshSerialInterface {
        * Check response, multiple responses may have been received in a data event so iterate through all complete responses in the global queue.
        */
       while (true) { // checkResponseAndExecuteCallback shifts the queue so always access queue[0].
-        if (this.queue[0].response === null) {
+        if (this._queue[0].response === null) {
           return;
-        } else if (this.queue[0].responseLength !== this.queue[0].response.length) {
+        } else if (this._queue[0].responseLength !== this._queue[0].response.length) {
           return;
         } else {
           this.checkResponseAndExecuteCallback(); // Shifts out the next element in the queue.
@@ -77,17 +77,17 @@ module.exports = class BLEMeshSerialInterface {
    * arrive in a single data event. Stores the response and it's associated length in the global queue.
    */
   buildResponse(data, queueIndex) {
-    if (this.queue[queueIndex].response === null) {
-      this.queue[queueIndex].response = Buffer.from([]);
-      this.queue[queueIndex].responseLength = data[0] + 1; // The first byte in the response, data[0], stores the length of the rest of the response in bytes.
+    if (this._queue[queueIndex].response === null) {
+      this._queue[queueIndex].response = Buffer.from([]);
+      this._queue[queueIndex].responseLength = data[0] + 1; // The first byte in the response, data[0], stores the length of the rest of the response in bytes.
     }
 
-    const remainingLength = this.queue[queueIndex].responseLength - this.queue[queueIndex].response.length;
+    const remainingLength = this._queue[queueIndex].responseLength - this._queue[queueIndex].response.length;
 
     if (remainingLength >= data.length) {
-      this.queue[queueIndex].response = Buffer.concat([this.queue[queueIndex].response, data]);
+      this._queue[queueIndex].response = Buffer.concat([this._queue[queueIndex].response, data]);
     } else if (remainingLength < data.length) { // Multiple responses have been joined into this data event.
-      this.queue[queueIndex].response = Buffer.concat([this.queue[queueIndex].response, data.slice(0, remainingLength)]);
+      this._queue[queueIndex].response = Buffer.concat([this._queue[queueIndex].response, data.slice(0, remainingLength)]);
       this.buildResponse(data.slice(remainingLength), queueIndex + 1);
     }
   }
@@ -99,7 +99,7 @@ module.exports = class BLEMeshSerialInterface {
    * Note: This modifies the global queue by shifting out the next element.
    */
   checkResponseAndExecuteCallback() {
-    const command = this.queue.shift();
+    const command = this._queue.shift();
 
     if (command.response.slice(0, command.expectedResponse.length).equals(command.expectedResponse)) {
       command.callback(null, command.response.slice(command.expectedResponse.length));
@@ -114,7 +114,7 @@ module.exports = class BLEMeshSerialInterface {
    * Adds the command to the global queue and writes the command to the slave.
    */
   execute(command, expectedResponse, callback) {
-    this.queue.push({expectedResponse: expectedResponse, callback: callback, response: null, responseLength: null});
+    this._queue.push({expectedResponse: expectedResponse, callback: callback, response: null, responseLength: null});
 
     this.port.write(command, err => {
       if (err) {
@@ -129,6 +129,8 @@ module.exports = class BLEMeshSerialInterface {
   _byte(val, index) {
     return ((val >> (8 * index)) & 0xFF);
   }
+
+  /* API */
 
   echo(buffer, callback) {
     const buf = Buffer.from([buffer.length + 1, commandOpCodes.ECHO]);
@@ -228,8 +230,8 @@ module.exports = class BLEMeshSerialInterface {
       console.log('dummy');
     }
 
-    this.queue.push({expectedResponse: firstExpectedResponse, callback: dummy, response: null, responseLength: null});
-    this.queue.push({expectedResponse: secondExpectedResponse, callback: callback, response: null, responseLength: null});
+    this._queue.push({expectedResponse: firstExpectedResponse, callback: dummy, response: null, responseLength: null});
+    this._queue.push({expectedResponse: secondExpectedResponse, callback: callback, response: null, responseLength: null});
 
     this.port.write(command, err => {
       if (err) {
@@ -238,3 +240,5 @@ module.exports = class BLEMeshSerialInterface {
     });
   }
 }
+
+module.exports = BLEMeshSerialInterface;
