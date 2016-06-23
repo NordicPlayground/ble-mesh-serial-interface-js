@@ -26,7 +26,7 @@ describe('#serial interface unit tests', () => {
     });
 
     it('prompts slave to echo one byte back to host', done => {
-      const buf = Buffer.from([0x01]);
+      const buf = new Buffer([0x01]);
 
       let callback = (err, res) => {
         if (err) {
@@ -40,7 +40,7 @@ describe('#serial interface unit tests', () => {
     });
 
     it('prompts slave to echo two bytes back to host', done => {
-      const buf = Buffer.from([0x01, 0x02]);
+      const buf = new Buffer([0x01, 0x02]);
 
       let callback = (err, res) => {
         if (err) {
@@ -54,7 +54,7 @@ describe('#serial interface unit tests', () => {
     });
 
     it('prompts slave to echo too many bytes back to host', done => {
-        const buf = Buffer.from(new Array(30).fill(0xff));
+        const buf = new Buffer(new Array(30).fill(0xff));
 
         let callback = (err, res) => {
         if (err) {
@@ -102,7 +102,7 @@ describe('#serial interface unit tests', () => {
         done();
       }
 
-      index.valueSet(0, Buffer.from([0x00, 0x01, 0x02]), callback);
+      index.valueSet(0, new Buffer([0x00, 0x01, 0x02]), callback);
     });
 
     it('value get', done => {
@@ -185,7 +185,7 @@ describe('#serial interface unit tests', () => {
     });
 
     it('sends multiple commands one after the other', done => {
-      const buf = Buffer.from([0x01]);
+      const buf = new Buffer([0x01]);
 
       let callback1 = (err, res) => {
         if (err) {
@@ -276,7 +276,7 @@ describe('#serial interface unit tests', () => {
 
       index.radioReset(callback3);
 
-      /*const buf = Buffer.from([0x01, 0x02]);
+      /*const buf = new Buffer([0x01, 0x02]);
 
       let callback4 = (err, res) => {
         if (err) {

@@ -53,7 +53,6 @@ class BLEMeshSerialInterface extends EventEmitter {
     });
 
     this._port.on('open', () => { // TODO: may emit an event instead of having a callback passed...
-      console.log('serialPort opened: ', serialPort);
       if (callback) {
         callback();
       }
@@ -94,7 +93,7 @@ class BLEMeshSerialInterface extends EventEmitter {
    */
   buildResponse(data, queueIndex) {
     if (this._queue[queueIndex].response === null) {
-      this._queue[queueIndex].response = Buffer.from([]);
+      this._queue[queueIndex].response = new Buffer([]);
       this._queue[queueIndex].responseLength = data[0] + 1; // The first byte in the response, data[0], stores the length of the rest of the response in bytes.
     }
 
@@ -149,98 +148,98 @@ class BLEMeshSerialInterface extends EventEmitter {
   /* nRF Open Mesh Serial Interface */
 
   echo(buffer, callback) {
-    const buf = Buffer.from([buffer.length + 1, commandOpCodes.ECHO]);
+    const buf = new Buffer([buffer.length + 1, commandOpCodes.ECHO]);
     const command = Buffer.concat([buf, buffer]);
-    const expectedResponse = Buffer.from([buffer.length + 1, responseOpCodes.ECHO]);
+    const expectedResponse = new Buffer([buffer.length + 1, responseOpCodes.ECHO]);
 
     this.execute(command, expectedResponse, callback);
   }
 
   init(accessAddr, intMinMS, channel, callback) {
-    const command = Buffer.from([10, commandOpCodes.INIT, this._byte(accessAddr, 0), this._byte(accessAddr, 1), this._byte(accessAddr, 2), this._byte(accessAddr, 3),
+    const command = new Buffer([10, commandOpCodes.INIT, this._byte(accessAddr, 0), this._byte(accessAddr, 1), this._byte(accessAddr, 2), this._byte(accessAddr, 3),
                                 this._byte(intMinMS, 0), this._byte(intMinMS, 1), this._byte(intMinMS, 2), this._byte(intMinMS, 3), channel]);
 
-    const expectedResponse = Buffer.from([0x03, responseOpCodes.CMD_RSP, commandOpCodes.INIT, statusCodes.SUCCESS])
+    const expectedResponse = new Buffer([0x03, responseOpCodes.CMD_RSP, commandOpCodes.INIT, statusCodes.SUCCESS])
 
     this.execute(command, expectedResponse, callback);
   }
 
   start(callback) {
-    const command = Buffer.from([1, commandOpCodes.START]);
-    const expectedResponse = Buffer.from([3, responseOpCodes.CMD_RSP, commandOpCodes.START, statusCodes.SUCCESS]);
+    const command = new Buffer([1, commandOpCodes.START]);
+    const expectedResponse = new Buffer([3, responseOpCodes.CMD_RSP, commandOpCodes.START, statusCodes.SUCCESS]);
 
     this.execute(command, expectedResponse, callback);
   }
 
   stop(callback) {
-    const command = Buffer.from([1, commandOpCodes.STOP]);
-    const expectedResponse = Buffer.from([3, responseOpCodes.CMD_RSP, commandOpCodes.STOP, statusCodes.SUCCESS]);
+    const command = new Buffer([1, commandOpCodes.STOP]);
+    const expectedResponse = new Buffer([3, responseOpCodes.CMD_RSP, commandOpCodes.STOP, statusCodes.SUCCESS]);
 
     this.execute(command, expectedResponse, callback);
   }
 
   valueSet(handle, buffer, callback) {
-    const buf = Buffer.from([3 + buffer.length, commandOpCodes.VALUE_SET, this._byte(handle, 0), this._byte(handle, 1)]);
+    const buf = new Buffer([3 + buffer.length, commandOpCodes.VALUE_SET, this._byte(handle, 0), this._byte(handle, 1)]);
     const command = Buffer.concat([buf, buffer]);
-    const expectedResponse = Buffer.from([3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_SET, statusCodes.SUCCESS]);
+    const expectedResponse = new Buffer([3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_SET, statusCodes.SUCCESS]);
 
     this.execute(command, expectedResponse, callback);
   }
 
   valueGet(handle, callback) { // TODO: This is hard coded and needs to be fixed! Requires big change.
-    const command = Buffer.from([3, commandOpCodes.VALUE_GET, this._byte(handle, 0), this._byte(handle, 1)]);
-    const expectedResponse = Buffer.from([3 + 2 + 3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_GET, statusCodes.SUCCESS, this._byte(handle, 0), this._byte(handle, 1)]);
+    const command = new Buffer([3, commandOpCodes.VALUE_GET, this._byte(handle, 0), this._byte(handle, 1)]);
+    const expectedResponse = new Buffer([3 + 2 + 3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_GET, statusCodes.SUCCESS, this._byte(handle, 0), this._byte(handle, 1)]);
 
     this.execute(command, expectedResponse, callback);
   }
 
   valueEnable(handle, callback) {
-    const command = Buffer.from([3, commandOpCodes.VALUE_ENABLE, this._byte(handle, 0), this._byte(handle, 1)]);
-    const expectedResponse = Buffer.from([3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_ENABLE, statusCodes.SUCCESS]);
+    const command = new Buffer([3, commandOpCodes.VALUE_ENABLE, this._byte(handle, 0), this._byte(handle, 1)]);
+    const expectedResponse = new Buffer([3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_ENABLE, statusCodes.SUCCESS]);
 
     this.execute(command, expectedResponse, callback);
   }
 
   valueDisable(handle, callback) {
-    const command = Buffer.from([3, commandOpCodes.VALUE_DISABLE, this._byte(handle, 0), this._byte(handle, 1)]);
-    const expectedResponse = Buffer.from([3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_DISABLE, statusCodes.SUCCESS]);
+    const command = new Buffer([3, commandOpCodes.VALUE_DISABLE, this._byte(handle, 0), this._byte(handle, 1)]);
+    const expectedResponse = new Buffer([3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_DISABLE, statusCodes.SUCCESS]);
 
     this.execute(command, expectedResponse, callback);
   }
 
   buildVersionGet(callback) {
-    const command = Buffer.from([1, commandOpCodes.BUILD_VERSION_GET]);
-    const expectedResponse = Buffer.from([6, responseOpCodes.CMD_RSP, commandOpCodes.BUILD_VERSION_GET, statusCodes.SUCCESS]);
+    const command = new Buffer([1, commandOpCodes.BUILD_VERSION_GET]);
+    const expectedResponse = new Buffer([6, responseOpCodes.CMD_RSP, commandOpCodes.BUILD_VERSION_GET, statusCodes.SUCCESS]);
 
     this.execute(command, expectedResponse, callback);
   }
 
   accessAddrGet(callback) {
-    const command = Buffer.from([1, commandOpCodes.ACCESS_ADDR_GET]);
-    const expectedResponse = Buffer.from([0x07, responseOpCodes.CMD_RSP, commandOpCodes.ACCESS_ADDR_GET, statusCodes.SUCCESS]);
+    const command = new Buffer([1, commandOpCodes.ACCESS_ADDR_GET]);
+    const expectedResponse = new Buffer([0x07, responseOpCodes.CMD_RSP, commandOpCodes.ACCESS_ADDR_GET, statusCodes.SUCCESS]);
 
     this.execute(command, expectedResponse, callback);
   }
 
   channelGet(callback) {
-    const command = Buffer.from([1, commandOpCodes.CHANNEL_GET]);
-    const expectedResponse = Buffer.from([0x04, responseOpCodes.CMD_RSP, commandOpCodes.CHANNEL_GET, statusCodes.SUCCESS])
+    const command = new Buffer([1, commandOpCodes.CHANNEL_GET]);
+    const expectedResponse = new Buffer([0x04, responseOpCodes.CMD_RSP, commandOpCodes.CHANNEL_GET, statusCodes.SUCCESS])
 
     this.execute(command, expectedResponse, callback);
   }
 
   intervalMinGet(callback) {
-    const command = Buffer.from([1, commandOpCodes.INTERVAL_MIN_GET]);
-    const expectedResponse = Buffer.from([0x07, responseOpCodes.CMD_RSP, commandOpCodes.INTERVAL_MIN_GET, statusCodes.SUCCESS])
+    const command = new Buffer([1, commandOpCodes.INTERVAL_MIN_GET]);
+    const expectedResponse = new Buffer([0x07, responseOpCodes.CMD_RSP, commandOpCodes.INTERVAL_MIN_GET, statusCodes.SUCCESS])
 
     this.execute(command, expectedResponse, callback);
   }
 
   radioReset(callback) {
-    const command = Buffer.from([1, commandOpCodes.RADIO_RESET]);
+    const command = new Buffer([1, commandOpCodes.RADIO_RESET]);
 
-    const firstExpectedResponse = Buffer.from([0x00]);
-    const secondExpectedResponse = Buffer.from([0x04, responseOpCodes.DEVICE_STARTED, 0x02, 0x00, 0x04]);
+    const firstExpectedResponse = new Buffer([0x00]);
+    const secondExpectedResponse = new Buffer([0x04, responseOpCodes.DEVICE_STARTED, 0x02, 0x00, 0x04]);
 
     let dummy = () => {
       console.log('dummy');

@@ -1,6 +1,6 @@
 {
   "name": "ble-mesh-serial-interface-js",
-  "version": "0.1.3",
+  "version": "0.2.4",
   "description": "An npm package for Node.js that provides an API to control a router node in a BLE mesh network via the serial port.",
   "main": "index.js",
   "directories": {
@@ -33,6 +33,9 @@
     "mocha": "^2.5.3"
   },
   "dependencies": {
-    "serialport": "^3.1.2"
-  }
+    "serialport": "^4.0.0"
+  },
+  "engines": {
+  "node": ">=6.0.0"
+}
 }
