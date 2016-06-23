@@ -47,9 +47,9 @@ class BLEMeshSerialInterface extends EventEmitter {
      */
     this._queue = [];
 
-    this._port = new SerialPort.SerialPort(serialPort, { // 'COM44', {
-      baudRate: baudRate, // 115200
-      rtscts: rtscts // true
+    this._port = new SerialPort.SerialPort(serialPort, {
+      baudRate: baudRate,
+      rtscts: rtscts
     });
 
     this._port.on('error', err => {
@@ -59,6 +59,10 @@ class BLEMeshSerialInterface extends EventEmitter {
     });
 
     this._port.on('data', data => {
+      if (this._queue.length === 0) { // TODO: temp fix.
+          return;
+      }
+
       this.buildResponse(data, 0);
 
       /**
