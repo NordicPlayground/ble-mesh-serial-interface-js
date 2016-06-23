@@ -14,10 +14,10 @@ let MESH_CHANNEL_STRING = '26';
 
 describe('#serial interface unit tests', () => {
 
-    const index = new BLEMeshSerialInterface('COM44', 115200, true);
+    const index = new BLEMeshSerialInterface('COM44');
 
     beforeEach(done => {
-        index.port.flush(err => {
+        index._port.flush(err => {
           if (err) {
             console.log(err);
           }

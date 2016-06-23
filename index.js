@@ -32,7 +32,10 @@ const statusCodes = {
 
 
 class BLEMeshSerialInterface extends EventEmitter {
-  constructor(serialPort, baudRate, rtscts) {
+  /**
+   * Connects to the serialPort with the specified buadRate and rtscts. Registers port event listeners. Sets up internal command queue.
+   */
+  constructor(serialPort, baudRate=115200, rtscts=true) {
     super();
 
     /**
@@ -43,18 +46,18 @@ class BLEMeshSerialInterface extends EventEmitter {
      */
     this._queue = [];
 
-    this.port = new SerialPort.SerialPort(serialPort, { // 'COM44', {
+    this._port = new SerialPort.SerialPort(serialPort, { // 'COM44', {
       baudRate: baudRate, // 115200
       rtscts: rtscts // true
     });
 
-    this.port.on('error', err => {
+    this._port.on('error', err => {
       if (err) {
         console.log('error: ', err.message);
       }
     });
 
-    this.port.on('data', data => {
+    this._port.on('data', data => {
       this.buildResponse(data, 0);
 
       /**
@@ -116,7 +119,7 @@ class BLEMeshSerialInterface extends EventEmitter {
   execute(command, expectedResponse, callback) {
     this._queue.push({expectedResponse: expectedResponse, callback: callback, response: null, responseLength: null});
 
-    this.port.write(command, err => {
+    this._port.write(command, err => {
       if (err) {
         assert(false, `error when sending write command to serial port: ${err.message}`);
       }
@@ -130,7 +133,7 @@ class BLEMeshSerialInterface extends EventEmitter {
     return ((val >> (8 * index)) & 0xFF);
   }
 
-  /* API */
+  /* nRF Open Mesh Serial Interface */
 
   echo(buffer, callback) {
     const buf = Buffer.from([buffer.length + 1, commandOpCodes.ECHO]);
@@ -233,7 +236,7 @@ class BLEMeshSerialInterface extends EventEmitter {
     this._queue.push({expectedResponse: firstExpectedResponse, callback: dummy, response: null, responseLength: null});
     this._queue.push({expectedResponse: secondExpectedResponse, callback: callback, response: null, responseLength: null});
 
-    this.port.write(command, err => {
+    this._port.write(command, err => {
       if (err) {
         assert(false, `error when sending write command to serial port: ${err.message}`);
       }
