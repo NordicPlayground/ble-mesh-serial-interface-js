@@ -9,33 +9,32 @@ An npm package for Node.js that provides an API to control a router node in a BL
 
 ## Usage
 
-    ```javascript
-    let BLEMeshSerialInterface = require('@mjdietzx/ble-mesh-serial-interface-js');
+```javascript
+const BLEMeshSerialInterface = require('@mjdietzx/ble-mesh-serial-interface-js');
 
-    const MESH_ACCESS_ADDR = 0x8E89BED6;
-    const MESH_INTERVAL_MIN_MS = 100;
-    const MESH_CHANNEL = 38;
+const MESH_ACCESS_ADDR = 0x8E89BED6;
+const MESH_INTERVAL_MIN_MS = 100;
+const MESH_CHANNEL = 38;
 
-    const bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface('COM44');
+const bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface('COM44');
 
-    let initCallback = err => {
-        if (err) {
-          console.log(err);
-          expect(false).to.equal(true);
-        }
-        console.log('nRF Open Mesh initialized!');
-    }
+let initCallback = err => {
+  if (err) {
+    console.log(err);
+  }
+  console.log('nRF Open Mesh initialized!');
+}
 
-    let accessAddrCallback = (err, res) => {
-        if (err) {
-          console.log(err);
-        }
-        console.log('Access Address: ', res.toString('hex'));
-      }
+let accessAddrCallback = (err, res) => {
+  if (err) {
+    console.log(err);
+  }
+  console.log('Access Address: ', res.toString('hex'));
+}
 
-    bleMeshSerialInterfaceAPI.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL, initCallback);
-    bleMeshSerialInterfaceAPI.accessAddrGet(accessAddrCallback);
-    ```
+bleMeshSerialInterfaceAPI.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL, initCallback);
+bleMeshSerialInterfaceAPI.accessAddrGet(accessAddrCallback);
+```
 
 ## Tests
 
