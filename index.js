@@ -32,206 +32,209 @@ const statusCodes = new Enum ({
                               'SUCCESS': 0x0
                               });
 
-/**
- * Array of objects (expectedResponse, callback, response, responseLength) used as a queue.
- *
- * Every time the host sends a command to the slave device, the expected response of that command and the callback to be called when the response
- * is received will be pushed to this queue. Then they will be shifted out as data responses are received from the slave.
- */
-let queue = [];
 
-let port = new SerialPort.SerialPort('COM44', {
-  baudRate: 115200,
-  rtscts: true
-});
+module.exports = class BLEMeshSerialInterface {
+  constructor(serialPort, baudRate, rtscts) {
+    /**
+     * Array of objects (expectedResponse, callback, response, responseLength) used as a queue.
+     *
+     * Every time the host sends a command to the slave device, the expected response of that command and the callback to be called when the response
+     * is received will be pushed to this queue. Then they will be shifted out as data responses are received from the slave.
+     */
+    this.queue = [];
 
-port.on('error', err => {
-  if (err) {
-    console.log('error: ', err.message);
+    this.port = new SerialPort.SerialPort(serialPort, { // 'COM44', {
+      baudRate: baudRate, // 115200
+      rtscts: rtscts // true
+    });
+
+    this.port.on('error', err => {
+      if (err) {
+        console.log('error: ', err.message);
+      }
+    });
+
+    this.port.on('data', data => {
+      this.buildResponse(data, 0);
+
+      /**
+       * Check response, multiple responses may have been received in a data event so iterate through all complete responses in the global queue.
+       */
+      while (true) { // checkResponseAndExecuteCallback shifts the queue so always access queue[0].
+        if (this.queue[0].response === null) {
+          return;
+        } else if (this.queue[0].responseLength !== this.queue[0].response.length) {
+          return;
+        } else {
+          this.checkResponseAndExecuteCallback(); // Shifts out the next element in the queue.
+        }
+      }
+    });
   }
-});
-
-port.on('data', data => {
-  buildResponse(data, 0);
 
   /**
-   * Check response, multiple responses may have been received in a data event so iterate through all complete responses in the global queue.
+   * Recursive function to build a complete response from the slave when the response is divided amongst data events and/or multiple responses (or parts of responses)
+   * arrive in a single data event. Stores the response and it's associated length in the global queue.
    */
-  while (true) { // checkResponseAndExecuteCallback shifts the queue so always access queue[0].
-    if (queue[0].response === null) {
-      return;
-    } else if (queue[0].responseLength !== queue[0].response.length) {
-      return;
+  buildResponse(data, queueIndex) {
+    if (this.queue[queueIndex].response === null) {
+      this.queue[queueIndex].response = Buffer.from([]);
+      this.queue[queueIndex].responseLength = data[0] + 1; // The first byte in the response, data[0], stores the length of the rest of the response in bytes.
+    }
+
+    const remainingLength = this.queue[queueIndex].responseLength - this.queue[queueIndex].response.length;
+
+    if (remainingLength >= data.length) {
+      this.queue[queueIndex].response = Buffer.concat([this.queue[queueIndex].response, data]);
+    } else if (remainingLength < data.length) { // Multiple responses have been joined into this data event.
+      this.queue[queueIndex].response = Buffer.concat([this.queue[queueIndex].response, data.slice(0, remainingLength)]);
+      this.buildResponse(data.slice(remainingLength), queueIndex + 1);
+    }
+  }
+
+  /**
+   * This checks the complete response stored in the global queue against it's corresponding expected response. Then it executes the corresponding callback
+   * with an error and or data.
+   *
+   * Note: This modifies the global queue by shifting out the next element.
+   */
+  checkResponseAndExecuteCallback() {
+    const command = this.queue.shift();
+
+    if (command.response.slice(0, command.expectedResponse.length).equals(command.expectedResponse)) {
+      command.callback(null, command.response.slice(command.expectedResponse.length));
     } else {
-      checkResponseAndExecuteCallback(); // Shifts out the next element in the queue.
+      console.log('command.expectedResponse: ', command.expectedResponse);
+      console.log('command.response: ', command.response);
+      command.callback(new Error(`unexpected command.response from slave device: ${command.response.toString('hex')}`));
     }
   }
-});
 
-/**
- * Recursive function to build a complete response from the slave when the response is divided amongst data events and/or multiple responses (or parts of responses)
- * arrive in a single data event. Stores the response and it's associated length in the global queue.
- */
-function buildResponse(data, queueIndex) {
-  if (queue[queueIndex].response === null) {
-    queue[queueIndex].response = Buffer.from([]);
-    queue[queueIndex].responseLength = data[0] + 1; // The first byte in the response, data[0], stores the length of the rest of the response in bytes.
+  /**
+   * Adds the command to the global queue and writes the command to the slave.
+   */
+  execute(command, expectedResponse, callback) {
+    this.queue.push({expectedResponse: expectedResponse, callback: callback, response: null, responseLength: null});
+
+    this.port.write(command, err => {
+      if (err) {
+        assert(false, `error when sending write command to serial port: ${err.message}`);
+      }
+    });
   }
 
-  const remainingLength = queue[queueIndex].responseLength - queue[queueIndex].response.length;
-
-  if (remainingLength >= data.length) {
-    queue[queueIndex].response = Buffer.concat([queue[queueIndex].response, data]);
-  } else if (remainingLength < data.length) { // Multiple responses have been joined into this data event.
-    queue[queueIndex].response = Buffer.concat([queue[queueIndex].response, data.slice(0, remainingLength)]);
-    buildResponse(data.slice(remainingLength), queueIndex + 1);
+  /**
+   * _byte(0xDEADBEEF, 0) => 0xEF and _byte(0xDEADBEEF, 3) => 0xDE.
+   */
+  _byte(val, index) {
+    return ((val >> (8 * index)) & 0xFF);
   }
-}
 
-/**
- * This checks the complete response stored in the global queue against it's corresponding expected response. Then it executes the corresponding callback
- * with an error and or data.
- *
- * Note: This modifies the global queue by shifting out the next element.
- */
-function checkResponseAndExecuteCallback() {
-  const command = queue.shift();
+  echo(buffer, callback) {
+    const buf = Buffer.from([buffer.length + 1, commandOpCodes.ECHO]);
+    const command = Buffer.concat([buf, buffer]);
+    const expectedResponse = Buffer.from([buffer.length + 1, responseOpCodes.ECHO]);
 
-  if (command.response.slice(0, command.expectedResponse.length).equals(command.expectedResponse)) {
-    command.callback(null, command.response.slice(command.expectedResponse.length));
-  } else {
-    console.log('command.expectedResponse: ', command.expectedResponse);
-    console.log('command.response: ', command.response);
-    command.callback(new Error(`unexpected command.response from slave device: ${command.response.toString('hex')}`));
+    this.execute(command, expectedResponse, callback);
   }
-}
 
-/**
- * Adds the command to the global queue and writes the command to the slave.
- */
-function execute(command, expectedResponse, callback) {
-  queue.push({expectedResponse: expectedResponse, callback: callback, response: null, responseLength: null});
+  init(accessAddr, intMinMS, channel, callback) {
+    const command = Buffer.from([10, commandOpCodes.INIT, this._byte(accessAddr, 0), this._byte(accessAddr, 1), this._byte(accessAddr, 2), this._byte(accessAddr, 3),
+                                this._byte(intMinMS, 0), this._byte(intMinMS, 1), this._byte(intMinMS, 2), this._byte(intMinMS, 3), channel]);
 
-  port.write(command, err => {
-    if (err) {
-      assert(false, `error when sending write command to serial port: ${err.message}`);
+    const expectedResponse = Buffer.from([0x03, responseOpCodes.CMD_RSP, commandOpCodes.INIT, statusCodes.SUCCESS])
+
+    this.execute(command, expectedResponse, callback);
+  }
+
+  start(callback) {
+    const command = Buffer.from([1, commandOpCodes.START]);
+    const expectedResponse = Buffer.from([3, responseOpCodes.CMD_RSP, commandOpCodes.START, statusCodes.SUCCESS]);
+
+    this.execute(command, expectedResponse, callback);
+  }
+
+  stop(callback) {
+    const command = Buffer.from([1, commandOpCodes.STOP]);
+    const expectedResponse = Buffer.from([3, responseOpCodes.CMD_RSP, commandOpCodes.STOP, statusCodes.SUCCESS]);
+
+    this.execute(command, expectedResponse, callback);
+  }
+
+  valueSet(handle, buffer, callback) {
+    const buf = Buffer.from([3 + buffer.length, commandOpCodes.VALUE_SET, this._byte(handle, 0), this._byte(handle, 1)]);
+    const command = Buffer.concat([buf, buffer]);
+    const expectedResponse = Buffer.from([3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_SET, statusCodes.SUCCESS]);
+
+    this.execute(command, expectedResponse, callback);
+  }
+
+  valueGet(handle, callback) { // TODO: This is hard coded and needs to be fixed! Requires big change.
+    const command = Buffer.from([3, commandOpCodes.VALUE_GET, this._byte(handle, 0), this._byte(handle, 1)]);
+    const expectedResponse = Buffer.from([3 + 2 + 3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_GET, statusCodes.SUCCESS, this._byte(handle, 0), this._byte(handle, 1)]);
+
+    this.execute(command, expectedResponse, callback);
+  }
+
+  valueEnable(handle, callback) {
+    const command = Buffer.from([3, commandOpCodes.VALUE_ENABLE, this._byte(handle, 0), this._byte(handle, 1)]);
+    const expectedResponse = Buffer.from([3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_ENABLE, statusCodes.SUCCESS]);
+
+    this.execute(command, expectedResponse, callback);
+  }
+
+  valueDisable(handle, callback) {
+    const command = Buffer.from([3, commandOpCodes.VALUE_DISABLE, this._byte(handle, 0), this._byte(handle, 1)]);
+    const expectedResponse = Buffer.from([3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_DISABLE, statusCodes.SUCCESS]);
+
+    this.execute(command, expectedResponse, callback);
+  }
+
+  buildVersionGet(callback) {
+    const command = Buffer.from([1, commandOpCodes.BUILD_VERSION_GET]);
+    const expectedResponse = Buffer.from([6, responseOpCodes.CMD_RSP, commandOpCodes.BUILD_VERSION_GET, statusCodes.SUCCESS]);
+
+    this.execute(command, expectedResponse, callback);
+  }
+
+  accessAddrGet(callback) {
+    const command = Buffer.from([1, commandOpCodes.ACCESS_ADDR_GET]);
+    const expectedResponse = Buffer.from([0x07, responseOpCodes.CMD_RSP, commandOpCodes.ACCESS_ADDR_GET, statusCodes.SUCCESS]);
+
+    this.execute(command, expectedResponse, callback);
+  }
+
+  channelGet(callback) {
+    const command = Buffer.from([1, commandOpCodes.CHANNEL_GET]);
+    const expectedResponse = Buffer.from([0x04, responseOpCodes.CMD_RSP, commandOpCodes.CHANNEL_GET, statusCodes.SUCCESS])
+
+    this.execute(command, expectedResponse, callback);
+  }
+
+  intervalMinGet(callback) {
+    const command = Buffer.from([1, commandOpCodes.INTERVAL_MIN_GET]);
+    const expectedResponse = Buffer.from([0x07, responseOpCodes.CMD_RSP, commandOpCodes.INTERVAL_MIN_GET, statusCodes.SUCCESS])
+
+    this.execute(command, expectedResponse, callback);
+  }
+
+  radioReset(callback) {
+    const command = Buffer.from([1, commandOpCodes.RADIO_RESET]);
+
+    const firstExpectedResponse = Buffer.from([0x00]);
+    const secondExpectedResponse = Buffer.from([0x04, responseOpCodes.DEVICE_STARTED, 0x02, 0x00, 0x04]);
+
+    let dummy = () => {
+      console.log('dummy');
     }
-  });
-}
 
-/**
- * _byte(0xDEADBEEF, 0) => 0xEF and _byte(0xDEADBEEF, 3) => 0xDE.
- */
-function _byte(val, index) {
-  return ((val >> (8 * index)) & 0xFF);
-}
+    this.queue.push({expectedResponse: firstExpectedResponse, callback: dummy, response: null, responseLength: null});
+    this.queue.push({expectedResponse: secondExpectedResponse, callback: callback, response: null, responseLength: null});
 
-exports.port = port;
-
-exports.echo = (buffer, callback) => {
-  const buf = Buffer.from([buffer.length + 1, commandOpCodes.ECHO]);
-  const command = Buffer.concat([buf, buffer]);
-  const expectedResponse = Buffer.from([buffer.length + 1, responseOpCodes.ECHO]);
-
-  execute(command, expectedResponse, callback);
-}
-
-exports.init = (accessAddr, intMinMS, channel, callback) => {
-  const command = Buffer.from([10, commandOpCodes.INIT, _byte(accessAddr, 0), _byte(accessAddr, 1), _byte(accessAddr, 2), _byte(accessAddr, 3),
-                              _byte(intMinMS, 0), _byte(intMinMS, 1), _byte(intMinMS, 2), _byte(intMinMS, 3), channel]);
-
-  const expectedResponse = Buffer.from([0x03, responseOpCodes.CMD_RSP, commandOpCodes.INIT, statusCodes.SUCCESS])
-
-  execute(command, expectedResponse, callback);
-}
-
-exports.start = callback => {
-  const command = Buffer.from([1, commandOpCodes.START]);
-  const expectedResponse = Buffer.from([3, responseOpCodes.CMD_RSP, commandOpCodes.START, statusCodes.SUCCESS]);
-
-  execute(command, expectedResponse, callback);
-}
-
-exports.stop = callback => {
-  const command = Buffer.from([1, commandOpCodes.STOP]);
-  const expectedResponse = Buffer.from([3, responseOpCodes.CMD_RSP, commandOpCodes.STOP, statusCodes.SUCCESS]);
-
-  execute(command, expectedResponse, callback);
-}
-
-exports.valueSet = (handle, buffer, callback) => {
-  const buf = Buffer.from([3 + buffer.length, commandOpCodes.VALUE_SET, _byte(handle, 0), _byte(handle, 1)]);
-  const command = Buffer.concat([buf, buffer]);
-  const expectedResponse = Buffer.from([3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_SET, statusCodes.SUCCESS]);
-
-  execute(command, expectedResponse, callback);
-}
-
-exports.valueGet = (handle, callback) => { // TODO: This is hard coded and needs to be fixed! Requires big change.
-  const command = Buffer.from([3, commandOpCodes.VALUE_GET, _byte(handle, 0), _byte(handle, 1)]);
-  const expectedResponse = Buffer.from([3 + 2 + 3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_GET, statusCodes.SUCCESS, _byte(handle, 0), _byte(handle, 1)]);
-
-  execute(command, expectedResponse, callback);
-}
-
-exports.valueEnable = (handle, callback) => {
-  const command = Buffer.from([3, commandOpCodes.VALUE_ENABLE, _byte(handle, 0), _byte(handle, 1)]);
-  const expectedResponse = Buffer.from([3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_ENABLE, statusCodes.SUCCESS]);
-
-  execute(command, expectedResponse, callback);
-}
-
-exports.valueDisable = (handle, callback) => {
-  const command = Buffer.from([3, commandOpCodes.VALUE_DISABLE, _byte(handle, 0), _byte(handle, 1)]);
-  const expectedResponse = Buffer.from([3, responseOpCodes.CMD_RSP, commandOpCodes.VALUE_DISABLE, statusCodes.SUCCESS]);
-
-  execute(command, expectedResponse, callback);
-}
-
-exports.buildVersionGet = callback => {
-  const command = Buffer.from([1, commandOpCodes.BUILD_VERSION_GET]);
-  const expectedResponse = Buffer.from([6, responseOpCodes.CMD_RSP, commandOpCodes.BUILD_VERSION_GET, statusCodes.SUCCESS]);
-
-  execute(command, expectedResponse, callback);
-}
-
-exports.accessAddrGet = callback => {
-  const command = Buffer.from([1, commandOpCodes.ACCESS_ADDR_GET]);
-  const expectedResponse = Buffer.from([0x07, responseOpCodes.CMD_RSP, commandOpCodes.ACCESS_ADDR_GET, statusCodes.SUCCESS]);
-
-  execute(command, expectedResponse, callback);
-}
-
-exports.channelGet = callback => {
-  const command = Buffer.from([1, commandOpCodes.CHANNEL_GET]);
-  const expectedResponse = Buffer.from([0x04, responseOpCodes.CMD_RSP, commandOpCodes.CHANNEL_GET, statusCodes.SUCCESS])
-
-  execute(command, expectedResponse, callback);
-}
-
-exports.intervalMinGet = callback => {
-  const command = Buffer.from([1, commandOpCodes.INTERVAL_MIN_GET]);
-  const expectedResponse = Buffer.from([0x07, responseOpCodes.CMD_RSP, commandOpCodes.INTERVAL_MIN_GET, statusCodes.SUCCESS])
-
-  execute(command, expectedResponse, callback);
-}
-
-exports.radioReset = callback => {
-  const command = Buffer.from([1, commandOpCodes.RADIO_RESET]);
-
-  const firstExpectedResponse = Buffer.from([0x00]);
-  const secondExpectedResponse = Buffer.from([0x04, responseOpCodes.DEVICE_STARTED, 0x02, 0x00, 0x04]);
-
-  let dummy = () => {
-    console.log('dummy');
+    this.port.write(command, err => {
+      if (err) {
+        assert(false, `error when sending write command to serial port: ${err.message}`);
+      }
+    });
   }
-
-  queue.push({expectedResponse: firstExpectedResponse, callback: dummy, response: null, responseLength: null});
-  queue.push({expectedResponse: secondExpectedResponse, callback: callback, response: null, responseLength: null});
-
-  port.write(command, err => {
-    if (err) {
-      assert(false, `error when sending write command to serial port: ${err.message}`);
-    }
-  });
 }

@@ -2,7 +2,7 @@
 
 var expect = require('chai').expect;
 
-var index = require('../index');
+let BLEMeshSerialInterface = require('../index');
 
 let MESH_ACCESS_ADDR = 0x8E89BED6;
 let MESH_INTERVAL_MIN_MS = 100;
@@ -13,6 +13,8 @@ let MESH_INTERVAL_MIN_MS_STRING = '64000000';
 let MESH_CHANNEL_STRING = '26';
 
 describe('#serial interface unit tests', () => {
+
+    const index = new BLEMeshSerialInterface('COM44', 115200, true);
 
     beforeEach(done => {
         index.port.flush(err => {
