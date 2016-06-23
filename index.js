@@ -60,7 +60,7 @@ class BLEMeshSerialInterface extends EventEmitter {
 
     this._port.on('data', data => {
       if (this._queue.length === 0) { // TODO: temp fix.
-          return;
+        return;
       }
 
       this.buildResponse(data, 0);
@@ -69,6 +69,9 @@ class BLEMeshSerialInterface extends EventEmitter {
        * Check response, multiple responses may have been received in a data event so iterate through all complete responses in the global queue.
        */
       while (true) { // checkResponseAndExecuteCallback shifts the queue so always access queue[0].
+        if (this._queue.length === 0) { // TODO: temp fix.
+          return;
+        }
         if (this._queue[0].response === null) {
           return;
         } else if (this._queue[0].responseLength !== this._queue[0].response.length) {
