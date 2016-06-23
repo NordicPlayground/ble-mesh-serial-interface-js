@@ -36,7 +36,7 @@ class BLEMeshSerialInterface extends EventEmitter {
   /**
    * Connects to the serialPort with the specified buadRate and rtscts. Registers port event listeners. Sets up internal command queue.
    */
-  constructor(serialPort, baudRate=115200, rtscts=true) {
+  constructor(serialPort, callback, baudRate=115200, rtscts=true) {
     super();
 
     /**
@@ -52,6 +52,13 @@ class BLEMeshSerialInterface extends EventEmitter {
       rtscts: rtscts
     });
 
+    this._port.on('open', () => { // TODO: may emit an event instead of having a callback passed...
+      console.log('serialPort opened: ', serialPort);
+      if (callback) {
+        callback();
+      }
+    });
+
     this._port.on('error', err => {
       if (err) {
         console.log('error: ', err.message);
@@ -59,7 +66,8 @@ class BLEMeshSerialInterface extends EventEmitter {
     });
 
     this._port.on('data', data => {
-      if (this._queue.length === 0) { // TODO: temp fix.
+      if (this._queue.length === 0) {
+        console.log('data received that is not a response to a command issued through BLEMeshSerialInterface: ', data);
         return;
       }
 
@@ -68,10 +76,7 @@ class BLEMeshSerialInterface extends EventEmitter {
       /**
        * Check response, multiple responses may have been received in a data event so iterate through all complete responses in the global queue.
        */
-      while (true) { // checkResponseAndExecuteCallback shifts the queue so always access queue[0].
-        if (this._queue.length === 0) { // TODO: temp fix.
-          return;
-        }
+      while (this._queue.length != 0) { // checkResponseAndExecuteCallback shifts the queue so always access queue[0].
         if (this._queue[0].response === null) {
           return;
         } else if (this._queue[0].responseLength !== this._queue[0].response.length) {
