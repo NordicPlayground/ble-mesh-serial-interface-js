@@ -36,8 +36,16 @@ class BLEMeshSerialInterface extends EventEmitter {
   /**
    * Connects to the serialPort with the specified buadRate and rtscts. Registers port event listeners. Sets up internal command queue.
    */
-  constructor(serialPort, callback, baudRate=115200, rtscts=true) {
+  constructor(serialPort, callback, baudRate, rtscts) {
     super();
+
+    if (!baudRate) {
+      baudRate = 115200;
+    }
+
+    if (!rtscts) {
+      rtscts = true;
+    }
 
     /**
      * Array of objects (expectedResponse, callback, response, responseLength) used as a queue.
