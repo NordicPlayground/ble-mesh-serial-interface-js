@@ -5,12 +5,12 @@ An npm package for Node.js that provides an API to control a router node in a BL
 
 ## Installation
 
-  `npm install @mjdietzx/ble-mesh-serial-interface-js`
+  `npm install ble-mesh-serial-interface-js`
 
 ## Usage
 
 ```javascript
-const BLEMeshSerialInterface = require('@mjdietzx/ble-mesh-serial-interface-js');
+const BLEMeshSerialInterface = require('ble-mesh-serial-interface-js');
 
 const MESH_ACCESS_ADDR = 0x8E89BED6;
 const MESH_INTERVAL_MIN_MS = 100;
