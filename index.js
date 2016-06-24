@@ -43,7 +43,7 @@ const statusCodes = {
   'ERROR_INVALID_DATA': 0x87,
   'ERROR_PIPE_INVALID': 0x90,
   'RESERVED_START': 0xF0,
-  'RESERVED_END': 0xFF,
+  'RESERVED_END': 0xFF
 };
 
 
@@ -59,9 +59,7 @@ class BLEMeshSerialInterface extends EventEmitter {
 
     if (!baudRate) {
       baudRate = 115200;
-    }
-
-    if (!rtscts) {
+    } if (!rtscts) {
       rtscts = true;
     }
 
@@ -86,7 +84,7 @@ class BLEMeshSerialInterface extends EventEmitter {
 
     this._port.on('error', err => {
       if (err) {
-        console.log('error: ', err.message);
+        console.log('serial port error: ', err.message);
       }
     });
 
@@ -219,8 +217,7 @@ class BLEMeshSerialInterface extends EventEmitter {
 
   init(accessAddr, intMinMS, channel, callback) {
     const command = new Buffer([10, commandOpCodes.INIT, this._byte(accessAddr, 0), this._byte(accessAddr, 1), this._byte(accessAddr, 2), this._byte(accessAddr, 3),
-                                this._byte(intMinMS, 0), this._byte(intMinMS, 1), this._byte(intMinMS, 2), this._byte(intMinMS, 3), channel]);
-
+                                                         this._byte(intMinMS, 0), this._byte(intMinMS, 1), this._byte(intMinMS, 2), this._byte(intMinMS, 3), channel]);
     const expectedResponse = new Buffer([0x03, responseOpCodes.CMD_RSP, commandOpCodes.INIT, statusCodes.SUCCESS])
 
     this.execute(command, expectedResponse, callback);
@@ -299,16 +296,9 @@ class BLEMeshSerialInterface extends EventEmitter {
 
   radioReset(callback) {
     const command = new Buffer([1, commandOpCodes.RADIO_RESET]);
-
     const expectedResponse = new Buffer([0x00]);
 
-    this._queue.push({expectedResponse: expectedResponse, callback: callback, response: null, responseLength: null});
-
-    this._port.write(command, err => {
-      if (err) {
-        assert(false, `error when sending write command to serial port: ${err.message}`);
-      }
-    });
+    this.execute(command, expectedResponse, callback);
   }
 }
 
