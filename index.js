@@ -23,18 +23,36 @@ const commandOpCodes = {
 
 const responseOpCodes = {
   'DEVICE_STARTED': 0x81,
-  'ECHO': 0x82,
-  'CMD_RSP': 0x84
+  'ECHO_RSP': 0x82,
+  'CMD_RSP': 0x84,
+  'EVENT_NEW': 0xB3,
+  'EVENT_UPDATE': 0xB4,
+  'EVENT_CONFLICTING': 0xB5,
+  'EVENT_TX': 0xB6
 };
 
 const statusCodes = {
-  'SUCCESS': 0x0
+  'SUCCESS': 0x0,
+  'ERROR_UNKNOWN': 0x80,
+  'ERROR_INTERNAL': 0x81,
+  'ERROR_CMD_UNKNOWN': 0x82,
+  'ERROR_DEVICE_STATE_INVALID': 0x83,
+  'ERROR_INVALID_LENGTH': 0x84,
+  'ERROR_INVALID_PARAMETER': 0x85,
+  'ERROR_BUSY': 0x86,
+  'ERROR_INVALID_DATA': 0x87,
+  'ERROR_PIPE_INVALID': 0x90,
+  'RESERVED_START': 0xF0,
+  'RESERVED_END': 0xFF,
 };
 
 
 class BLEMeshSerialInterface extends EventEmitter {
   /**
    * Connects to the serialPort with the specified buadRate and rtscts. Registers port event listeners. Sets up internal command queue.
+   *
+   * Note: Upon opening the serial port, the received data buffer will be flushed and read. So any events or responses the slave device has queued will
+   * be logged to the console.
    */
   constructor(serialPort, callback, baudRate, rtscts) {
     super();
@@ -89,7 +107,13 @@ class BLEMeshSerialInterface extends EventEmitter {
         } else if (this._queue[0].responseLength !== this._queue[0].response.length) {
           return;
         } else {
-          this.checkResponseAndExecuteCallback(); // Shifts out the next element in the queue.
+          if (this.isCommandResponse()) {
+            this.checkResponseAndExecuteCallback(); // Shifts out the next element in the queue.
+          } else {
+            this.onSlaveEvent();
+            this._queue[0].response = null;
+            this._queue[0].responseLength = null;
+          }
         }
       }
     });
@@ -146,6 +170,36 @@ class BLEMeshSerialInterface extends EventEmitter {
     });
   }
 
+  isCommandResponse() {
+    if (this._queue[0].response[1] === responseOpCodes.ECHO_RSP | this._queue[0].response[1] === responseOpCodes.CMD_RSP |
+        this._queue[0].response[0] === 0x0) {
+      return true;
+    }
+    return false;
+  }
+
+  onSlaveEvent() {
+    switch (this._queue[0].response[1]) {
+      case responseOpCodes.DEVICE_STARTED:
+        console.log('device started event received from slave: ', this._queue[0].response);
+        break;
+      case responseOpCodes.EVENT_NEW:
+        console.log('new handle event received from slave: ', this._queue[0].response);
+        break;
+      case responseOpCodes.EVENT_UPDATE:
+        console.log('handle update event received from slave: ', this._queue[0].response);
+        break;
+      case responseOpCodes.EVENT_CONFLICTING:
+        console.log('handle conflicting event received from slave: ', this._queue[0].response);
+        break;
+      case responseOpCodes.EVENT_TX:
+        console.log('tx event received from slave: ', this._queue[0].response);
+        break;
+      default:
+        console.log('unknown event received from slave: ', this._queue[0].response);
+    }
+  }
+
   /**
    * _byte(0xDEADBEEF, 0) => 0xEF and _byte(0xDEADBEEF, 3) => 0xDE.
    */
@@ -158,7 +212,7 @@ class BLEMeshSerialInterface extends EventEmitter {
   echo(buffer, callback) {
     const buf = new Buffer([buffer.length + 1, commandOpCodes.ECHO]);
     const command = Buffer.concat([buf, buffer]);
-    const expectedResponse = new Buffer([buffer.length + 1, responseOpCodes.ECHO]);
+    const expectedResponse = new Buffer([buffer.length + 1, responseOpCodes.ECHO_RSP]);
 
     this.execute(command, expectedResponse, callback);
   }
@@ -246,15 +300,9 @@ class BLEMeshSerialInterface extends EventEmitter {
   radioReset(callback) {
     const command = new Buffer([1, commandOpCodes.RADIO_RESET]);
 
-    const firstExpectedResponse = new Buffer([0x00]);
-    const secondExpectedResponse = new Buffer([0x04, responseOpCodes.DEVICE_STARTED, 0x02, 0x00, 0x04]);
+    const expectedResponse = new Buffer([0x00]);
 
-    let dummy = () => {
-      console.log('dummy');
-    }
-
-    this._queue.push({expectedResponse: firstExpectedResponse, callback: dummy, response: null, responseLength: null});
-    this._queue.push({expectedResponse: secondExpectedResponse, callback: callback, response: null, responseLength: null});
+    this._queue.push({expectedResponse: expectedResponse, callback: callback, response: null, responseLength: null});
 
     this._port.write(command, err => {
       if (err) {
