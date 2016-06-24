@@ -5,7 +5,7 @@ const EventEmitter = require('events');
 
 const SerialPort = require('serialport');
 
-const commandOpCodes = { // TODO: Still codes to add and implement.
+const commandOpCodes = { // TODO: Still additional codes to add and implement.
   'ECHO': 0x02,
   'RADIO_RESET': 0x0e,
   'INIT': 0x70,
@@ -54,7 +54,7 @@ class BLEMeshSerialInterface extends EventEmitter {
    * Note: Upon opening the serial port, the received data buffer will be flushed and read. So any events or responses the slave device has queued will
    * be logged to the console.
    */
-  constructor(serialPort, callback, baudRate, rtscts) {
+  constructor(serialPort, baudRate, rtscts) {
     super();
 
     if (!baudRate) { // TODO: Better way to do this?
@@ -74,9 +74,7 @@ class BLEMeshSerialInterface extends EventEmitter {
     });
 
     this._port.on('open', () => {
-      if (callback) {
-        callback(); // TODO: Look into emitting an event instead of executing a callback.
-      }
+      this.emit('open');
     });
 
     this._port.on('error', err => {
@@ -136,18 +134,29 @@ class BLEMeshSerialInterface extends EventEmitter {
     }
   }
 
+  /**
+   * _byte(0xDEADBEEF, 0) => 0xEF and _byte(0xDEADBEEF, 3) => 0xDE.
+   */
+  _byte(val, index) {
+    return ((val >> (8 * index)) & 0xFF);
+  }
+
   _handleCommandResponse(response) {
     if (response[0] === 0) {
       this.emit('cmd_rsp', null, response);
       return;
     }
 
-    switch(response[1]) {
+    const responseOpCode = response[1];
+
+    switch(responseOpCode) {
       case responseOpCodes.ECHO_RSP:
         this.emit('echo_rsp', null, response.slice(2));
         break;
+
       case responseOpCodes.CMD_RSP:
-        switch(response[3]) {
+        const statusCode = response[3];
+        switch(statusCode) {
           case statusCodes.SUCCESS:
             this.emit('cmd_rsp', null, response.slice(4));
             break;
@@ -155,13 +164,32 @@ class BLEMeshSerialInterface extends EventEmitter {
             console.log('status code error: ', response);
         }
         break;
+
       default:
         console.log('unknown command response opCode');
     }
   }
 
   _handleEventResponse(response) {
-    console.log(response);
+    const responseOpCode = response[1];
+    const data = response.slice(4);
+
+    switch(responseOpCode) {
+      case responseOpCodes.EVENT_NEW:
+        this.emit('event_new', data);
+        break;
+      case responseOpCodes.EVENT_UPDATE:
+        this.emit('event_update', data);
+        break;
+      case responseOpCodes.EVENT_CONFLICTING:
+        this.emit('event_conflicting', data);
+        break;
+      case responseOpCodes.EVENT_TX:
+        this.emit('event_tx', data);
+        break;
+      default:
+        console.log('unknown event response received from slave device: ', response);
+    }
   }
 
   _isCommandResponse(response) {
@@ -178,13 +206,6 @@ class BLEMeshSerialInterface extends EventEmitter {
         console.log('error when writing to serial port: ', err.message);
       }
     });
-  }
-
-  /**
-   * _byte(0xDEADBEEF, 0) => 0xEF and _byte(0xDEADBEEF, 3) => 0xDE.
-   */
-  _byte(val, index) {
-    return ((val >> (8 * index)) & 0xFF);
   }
 
   /* nRF Open Mesh Serial Interface */
