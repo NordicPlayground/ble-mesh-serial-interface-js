@@ -16,6 +16,10 @@ describe('#serial interface unit tests', () => {
 
     const index = new BLEMeshSerialInterface('COM46');
 
+    index.on('an_event', () => {
+      console.log('launced an event')
+    })
+
     beforeEach(done => {
         index._port.flush(err => {
           if (err) {
@@ -25,278 +29,247 @@ describe('#serial interface unit tests', () => {
         });
     });
 
+    it('tests _isCommandResponse()', () => {
+      const resp = new Buffer([0x01, 0x82]);
+
+      let res = index._isCommandResponse(resp);
+      expect(res).to.equal(true);
+
+      const resp2 = new Buffer([0x01, 0x84]);
+
+      res = index._isCommandResponse(resp2);
+      expect(res).to.equal(true);
+
+      const resp3 = new Buffer([0x0]);
+
+      res = index._isCommandResponse(resp3);
+      expect(res).to.equal(true);
+
+      const resp4 = new Buffer([0x1, 0x81]);
+
+      res = index._isCommandResponse(resp4);
+      expect(res).to.equal(false);
+
+    });
     it('prompts slave to echo one byte back to host', done => {
       const buf = new Buffer([0x01]);
 
-      let callback = (err, res) => {
+      index.once('echo_rsp', (err, res) => {
         if (err) {
           console.log(err);
         }
         expect(res.toString('hex')).to.equal(buf.toString('hex'));
         done();
-      }
+      });
 
-      index.echo(buf, callback);
+      index.echo(buf);
     });
 
     it('prompts slave to echo two bytes back to host', done => {
       const buf = new Buffer([0x01, 0x02]);
 
-      let callback = (err, res) => {
+      index.once('echo_rsp', (err, res) => {
         if (err) {
           console.log(err);
         }
         expect(res.toString('hex')).to.equal(buf.toString('hex'));
         done();
-      }
+      });
 
-      index.echo(buf, callback);
+      index.echo(buf);
     });
 
     it('prompts slave to echo too many bytes back to host', done => {
         const buf = new Buffer(new Array(30).fill(0xff));
 
-        let callback = (err, res) => {
+        index.once('echo_rsp', (err, res) => {
         if (err) {
           console.log(err);
         }
         expect(res.toString('hex')).to.equal(buf.toString('hex'));
         done();
-      }
+      });
 
-      index.echo(buf, callback);
+      index.echo(buf);
     });
 
     it('prompts the slave to return its build version', done => {
       const expected_result = '000803';
 
-      let callback = (err, res) => {
+      index.once('cmd_rsp', (err, res) => {
         if (err) {
           console.log(err);
         }
         expect(res.toString('hex')).to.equal(expected_result);
         done();
-      }
+      });
 
-      index.buildVersionGet(callback);
+      index.buildVersionGet();
     });
 
     it('prompts the slave to init the mesh', done => {
-      let callback = err => {
+
+      index.once('cmd_rsp', err => {
         if (err) {
           console.log(err);
           expect(false).to.equal(true);
         }
         done();
-      }
+      });
 
-      index.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL, callback);
+      index.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL);
     });
 
     it('value set', done => {
-      let callback = err => {
+      index.once('cmd_rsp', err => {
         if (err) {
           console.log(err);
           expect(false).to.equal(true);
         }
         done();
-      }
+      });
 
-      index.valueSet(0, new Buffer([0x00, 0x01, 0x02]), callback);
+
+      index.valueSet(0, new Buffer([0x00, 0x01, 0x02]));
     });
 
     it('value get', done => {
-      const expected_result = '000102';
-      let callback = (err, data) => {
+      const expected_result = '0000000102';
+      index.once('cmd_rsp', (err, res) => {
         if (err) {
           console.log(err);
-          expect(data.toString('hex')).to.equal(expected_result);
         }
+        expect(res.toString('hex')).to.equal(expected_result);
         done();
-      }
+      });
 
-      index.valueGet(0, callback);
+      index.valueGet(0);
     });
 
     it('value enable', done => {
-      let callback = err => {
+      index.once('cmd_rsp', err => {
         if (err) {
           console.log(err);
           expect(false).to.equal(true);
         }
         done();
-      }
+      });
 
-      index.valueEnable(0, callback);
+      index.valueEnable(0);
     });
 
     it('value disable', done => {
-      let callback = err => {
+      index.once('cmd_rsp', err => {
         if (err) {
           console.log(err);
           expect(false).to.equal(true);
         }
         done();
-      }
+      });
 
-      index.valueDisable(0, callback);
+      index.valueDisable(0);
     });
 
     it('prompts the slave to return its access address', done => {
       const expected_result = MESH_ACCESS_ADDR_STRING; // TODO: Figure out what is going on. Little endian?.
 
-      let callback = (err, res) => {
+      index.once('cmd_rsp', (err, res) => {
         if (err) {
           console.log(err);
         }
         expect(res.toString('hex')).to.equal(expected_result);
         done();
-      }
+      });
 
-      index.accessAddrGet(callback);
+      index.accessAddrGet();
     });
 
     it('prompts the slave to return its advertising channel', done => {
       const expected_result = MESH_CHANNEL_STRING;
 
-      let callback = (err, res) => {
+      index.once('cmd_rsp', (err, res) => {
         if (err) {
           console.log(err);
         }
         expect(res.toString('hex')).to.equal(expected_result);
         done();
-      }
+      });
 
-      index.channelGet(callback);
+      index.channelGet();
     });
 
     it('prompts the slave to return its min interval', done => {
       const expected_result = MESH_INTERVAL_MIN_MS_STRING;
 
-      let callback = (err, res) => {
+      index.once('cmd_rsp', (err, res) => {
         if (err) {
           console.log(err);
         }
         expect(res.toString('hex')).to.equal(expected_result);
         done();
-      }
+      });
 
-      index.intervalMinGet(callback);
+      index.intervalMinGet();
     });
 
     it('sends multiple commands one after the other', done => {
       const buf = new Buffer([0x01]);
 
-      let callback1 = (err, res) => {
+      index.once('echo_rsp', (err, res) => {
         if (err) {
           console.log(err);
         }
         expect(res.toString('hex')).to.equal(buf.toString('hex'));
-      }
+      });
 
-      index.echo(buf, callback1);
+      index.echo(buf);
 
       const expected_result = '000803';
 
-      let callback = (err, res) => {
+      index.once('cmd_rsp', (err, res) => {
         if (err) {
           console.log(err);
         }
         expect(res.toString('hex')).to.equal(expected_result);
         done();
-      }
+      });
 
-      index.buildVersionGet(callback);
+      index.buildVersionGet();
     });
 
     it('prompts the slave to stop the mesh', done => {
-      let callback = err => {
+      index.once('cmd_rsp', err => {
         if (err) {
           console.log(err);
           expect(false).to.equal(true);
         }
         done();
-      }
+      });
 
-      index.stop(callback);
+      index.stop();
     });
 
     it('prompts the slave to start the mesh', done => {
-      let callback = err => {
+      index.once('cmd_rsp', err => {
         if (err) {
           console.log(err);
           expect(false).to.equal(true);
         }
         done();
-      }
+      });
 
-      index.start(callback);
+      index.start();
     });
 
     it('prompts the slave to perform a radio reset', done => {
-      let callback = err => {
+      index.once('cmd_rsp', err => {
         if (err) {
           console.log(err);
           expect(false).to.equal(true);
         }
         done();
-      }
+      });
 
-      index.radioReset(callback);
-    });
-
-    it('complicated multi command test', done => {
-
-      let callback1 = err => {
-        if (err) {
-          console.log(err);
-          expect(false).to.equal(true);
-        }
-      }
-
-      index.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL, callback1);
-
-      const expected_result = MESH_ACCESS_ADDR_STRING; // TODO: Figure out what is going on. Little endian?.
-
-      let callback2 = (err, res) => {
-        if (err) {
-          console.log(err);
-        }
-        expect(res.toString('hex')).to.equal(expected_result);
-      }
-
-      index.accessAddrGet(callback2);
-
-      let callback3 = err => {
-        if (err) {
-          console.log(err);
-          expect(false).to.equal(true);
-        }
-      }
-
-      index.radioReset(callback3);
-
-      /*const buf = new Buffer([0x01, 0x02]);
-
-      let callback4 = (err, res) => {
-        if (err) {
-          console.log(err);
-        }
-        expect(res.toString('hex')).to.equal(buf.toString('hex'));
-      }
-
-      index.echo(buf, callback4);
-
-      const expected_result1 = '000803';
-
-      let callback5 = (err, res) => {
-        if (err) {
-          console.log(err);
-        }
-        expect(res.toString('hex')).to.equal(expected_result1);
-        done();
-      }
-
-      index.buildVersionGet(callback5);*/
+      index.radioReset();
     });
 });
