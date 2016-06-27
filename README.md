@@ -46,6 +46,43 @@ const bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface('COM45', err => {
 });
 ```
 
+```javascript
+'use strict';
+
+const FIRST_COM_PORT = 'COM45';
+const OPTIONAL_SECOND_COM_PORT = 'COM46;
+
+const ble = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
+  if (err) {
+    console.log(err);
+  }
+  const buf = new Buffer([0x01]);
+
+  ble.echo(buf, (err, res) => {
+    if (err) {
+      console.log(err);
+    }
+    ble.closeSerialPort(() => {
+      ble.openSerialPort(OPTIONAL_SECOND_COM_PORT, err => {
+        if (err) {
+          console.log(err);
+        }
+        ble.echo(buf, (err, res) => {
+          if (err) {
+            console.log(err);
+          }
+        });
+      });
+    });
+  });
+});
+
+## API
+
+TODO: Improve this.
+
+BLEMeshSerialInterface is defined in 'index.js' and it has public methods for interfacing with the ble mesh device and opening/closing/writing the serial port. It also emits events on specific serial port events and ble mesh events. For now, see /* API Methods */ and /* nRF Open Mesh Serial Interface */ in 'index.js.' For info about the events BLEMeshSerialInterface emits, search 'index.js' for 'this.emit'
+
 ## Tests
 
   `npm test`

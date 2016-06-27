@@ -46,12 +46,6 @@ const statusCodes = {
 
 
 class BLEMeshSerialInterface extends EventEmitter {
-  /**
-   * Connects to the serialPort with the specified buadRate and rtscts. Registers port event listeners. Sets up internal command queue.
-   *
-   * Note: Upon opening the serial port, the received data buffer will be flushed and read. So any events or responses the slave device has queued will
-   * be logged to the console.
-   */
   constructor(serialPort, callback, baudRate=115200, rtscts=true) {
     super();
 
