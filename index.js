@@ -52,29 +52,14 @@ class BLEMeshSerialInterface extends EventEmitter {
    * Note: Upon opening the serial port, the received data buffer will be flushed and read. So any events or responses the slave device has queued will
    * be logged to the console.
    */
-  constructor(serialPort, callback, baudRate, rtscts) {
+  constructor(serialPort, callback, baudRate=115200, rtscts=true) {
     super();
 
-    if (!baudRate) { // TODO: Better way to do this?
-      baudRate = 115200;
-    } if (!rtscts) {
-      rtscts = true;
-    }
+    this._port = new SerialPort.SerialPort(serialPort, {baudRate: baudRate, rtscts: rtscts}, callback);
 
     this._callback;
     this._responseQueue = [];
-
     this._tempBuildResponse;
-
-    this._port = new SerialPort.SerialPort(serialPort, {
-      baudRate: baudRate,
-      rtscts: rtscts
-    });
-
-    this._port.on('close', () => {
-      this.emit('closed');
-      console.log('serial port closed');
-    });
 
     this._port.on('data', data => {
       this._buildResponse(data);
@@ -90,29 +75,16 @@ class BLEMeshSerialInterface extends EventEmitter {
     });
 
     this._port.on('disconnect', err => {
-      if (err) {
-        console.log('serial port disconnect error: ', err);
-      }
-      this.emit('disconnected');
-      console.log('serial port disconnected');
+      this.emit('disconnected', err);
+      console.log('serial port disconnected: ', err);
     });
 
     this._port.on('error', err => {
-      if (err) {
-        this.emit('error', err);
-        console.log('serial port error: ', err.message);
-      }
-    });
-
-    this._port.on('open', () => {
-      console.log('serial port opened');
-      callback();
+      this.emit('error', err);
+      console.log('serial port error: ', err);
     });
   }
 
-  /**
-   *
-   */
   _buildResponse(data) {
     let length = data[0] + 1; // If we are in the middle of building a response this will be incorrect, and re-assigned below.
 
@@ -148,8 +120,8 @@ class BLEMeshSerialInterface extends EventEmitter {
     return ((val >> (8 * index)) & 0xFF);
   }
 
-  _handleCommandResponse(response) { // TODO: error case.
-    if (response[0] === 0) {
+  _handleCommandResponse(response) {
+    if (response[0] === 0 & response.length === 1) {
       this._callback(null, response);
       return;
     }
@@ -160,7 +132,6 @@ class BLEMeshSerialInterface extends EventEmitter {
       case responseOpCodes.ECHO_RSP:
         this._callback(null, response.slice(2));
         break;
-
       case responseOpCodes.CMD_RSP:
         const statusCode = response[3];
         switch(statusCode) {
@@ -168,18 +139,19 @@ class BLEMeshSerialInterface extends EventEmitter {
             this._callback(null, response.slice(4));
             break;
           default:
+            this._callback(new Error(`received a status code in the command response indicating an error ${statusCode}`), response);
             console.log('status code error: ', response);
         }
         break;
-
       default:
+        this._callback(new Error(`unknown command response opCode ${responseOpCode}`), response);
         console.log('unknown command response opCode');
     }
   }
 
   _handleEventResponse(response) {
     const responseOpCode = response[1];
-    const data = response.slice(4);
+    const data = response.slice(2);
 
     switch(responseOpCode) {
       case responseOpCodes.DEVICE_STARTED:
@@ -210,6 +182,32 @@ class BLEMeshSerialInterface extends EventEmitter {
     return false;
   }
 
+  /* API Methods */
+
+  closeSerialPort(callback) {
+    if (this._port.isOpen()) {
+      this._port.close(() => {
+        callback();
+      });
+    } else {
+      callback(new Error('error, there is no serial port currently open'));
+    }
+  }
+
+  openSerialPort(serialPort, callback, baudRate=115200, rtscts=true) {
+    if (this._port.isOpen()) {
+      return callback(new Error('error, serial port is open and must be closed before calling this function'));
+    }
+
+    this._port.path = serialPort;
+    this._port.options.baudRate = baudRate;
+    this._port.options.rtscts = rtscts;
+
+    this._port.open(err => {
+      callback(err);
+    })
+  }
+
   writeSerialPort(data) {
     this._port.write(data, err => {
       if (err) {
@@ -231,6 +229,7 @@ class BLEMeshSerialInterface extends EventEmitter {
   init(accessAddr, intMinMS, channel, callback) {
     const command = new Buffer([10, commandOpCodes.INIT, this._byte(accessAddr, 0), this._byte(accessAddr, 1), this._byte(accessAddr, 2), this._byte(accessAddr, 3),
                                                          this._byte(intMinMS, 0), this._byte(intMinMS, 1), this._byte(intMinMS, 2), this._byte(intMinMS, 3), channel]);
+
     this._callback = callback;
     this.writeSerialPort(command);
   }
