@@ -88,11 +88,13 @@ class BLEMeshSerialInterface extends EventEmitter {
     this._port.on('data', data => {
       this._buildResponse(data);
 
-      while (this._commandResponseQueue.length != 0) {
-        this._handleCommandResponse(this._commandResponseQueue.shift());
-      }
-      while (this._eventResponseQueue.length != 0) {
-        this._handleEventResponse(this._eventResponseQueue.shift());
+      while (this._responseQueue.length != 0) {
+        const response = this._responseQueue.shift();
+        if (this._isCommandResponse(response)) {
+          this._handleCommandResponse(response);
+        } else {
+          this._handleEventResponse(response);
+        }
       }
     });
   }
@@ -135,9 +137,9 @@ class BLEMeshSerialInterface extends EventEmitter {
     return ((val >> (8 * index)) & 0xFF);
   }
 
-  _handleCommandResponse(response) {
+  _handleCommandResponse(response) { // TODO: error case.
     if (response[0] === 0) {
-      this.emit('cmd_rsp', null, response);
+      this._callback(null, response);
       return;
     }
 
@@ -145,14 +147,14 @@ class BLEMeshSerialInterface extends EventEmitter {
 
     switch(responseOpCode) {
       case responseOpCodes.ECHO_RSP:
-        this.emit('echo_rsp', null, response.slice(2));
+        this._callback(null, response.slice(2));
         break;
 
       case responseOpCodes.CMD_RSP:
         const statusCode = response[3];
         switch(statusCode) {
           case statusCodes.SUCCESS:
-            this.emit('cmd_rsp', null, response.slice(4));
+            this._callback(null, response.slice(4));
             break;
           default:
             console.log('status code error: ', response);
@@ -204,71 +206,96 @@ class BLEMeshSerialInterface extends EventEmitter {
 
   /* nRF Open Mesh Serial Interface */
 
-  echo(buffer) {
+  echo(buffer, callback) {
     const buf = new Buffer([buffer.length + 1, commandOpCodes.ECHO]);
     const command = Buffer.concat([buf, buffer]);
+
+    this._callback = callback;
     this.writeSerialPort(command);
   }
 
-  init(accessAddr, intMinMS, channel) {
+  init(accessAddr, intMinMS, channel, callback) {
     const command = new Buffer([10, commandOpCodes.INIT, this._byte(accessAddr, 0), this._byte(accessAddr, 1), this._byte(accessAddr, 2), this._byte(accessAddr, 3),
                                                          this._byte(intMinMS, 0), this._byte(intMinMS, 1), this._byte(intMinMS, 2), this._byte(intMinMS, 3), channel]);
+    this._callback = callback;
     this.writeSerialPort(command);
   }
 
-  start() {
+  start(callback) {
     const command = new Buffer([1, commandOpCodes.START]);
+
+    this._callback = callback;
     this.writeSerialPort(command);
   }
 
-  stop() {
+  stop(callback) {
     const command = new Buffer([1, commandOpCodes.STOP]);
+
+    this._callback = callback;
     this.writeSerialPort(command);
   }
 
-  valueSet(handle, buffer) {
+  valueSet(handle, buffer, callback) {
     const buf = new Buffer([3 + buffer.length, commandOpCodes.VALUE_SET, this._byte(handle, 0), this._byte(handle, 1)]);
     const command = Buffer.concat([buf, buffer]);
+
+    this._callback = callback;
     this.writeSerialPort(command);
   }
 
-  valueGet(handle) {
+  valueGet(handle, callback) {
     const command = new Buffer([3, commandOpCodes.VALUE_GET, this._byte(handle, 0), this._byte(handle, 1)]);
+
+    this._callback = callback;
     this.writeSerialPort(command);
   }
 
-  valueEnable(handle) {
+  valueEnable(handle, callback) {
     const command = new Buffer([3, commandOpCodes.VALUE_ENABLE, this._byte(handle, 0), this._byte(handle, 1)]);
+
+    this._callback = callback;
     this.writeSerialPort(command);
   }
 
-  valueDisable(handle) {
+  valueDisable(handle, callback) {
     const command = new Buffer([3, commandOpCodes.VALUE_DISABLE, this._byte(handle, 0), this._byte(handle, 1)]);
+
+    this._callback = callback;
     this.writeSerialPort(command);
   }
 
-  buildVersionGet() {
+  buildVersionGet(callback) {
     const command = new Buffer([1, commandOpCodes.BUILD_VERSION_GET]);
+
+    this._callback = callback;
     this.writeSerialPort(command);
   }
 
-  accessAddrGet() {
+  accessAddrGet(callback) {
     const command = new Buffer([1, commandOpCodes.ACCESS_ADDR_GET]);
+
+    this._callback = callback;
     this.writeSerialPort(command);
   }
 
-  channelGet() {
+  channelGet(callback) {
     const command = new Buffer([1, commandOpCodes.CHANNEL_GET]);
+
+    this._callback = callback;
     this.writeSerialPort(command);
   }
 
-  intervalMinGet() {
+  intervalMinGet(callback) {
     const command = new Buffer([1, commandOpCodes.INTERVAL_MIN_GET]);
+
+    this._callback = callback;
     this.writeSerialPort(command);
   }
 
-  radioReset() {
+  radioReset(callback) {
     const command = new Buffer([1, commandOpCodes.RADIO_RESET]);
+
+    this._callback = callback;
     this.writeSerialPort(command);
   }
 }

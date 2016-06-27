@@ -102,225 +102,170 @@ describe('#serial interface unit tests', () => {
 
     });
 
-    /*it('prompts slave to echo one byte back to host', done => {
+    it('prompts slave to echo one byte back to host', done => {
       const buf = new Buffer([0x01]);
 
-      index.once('echo_rsp', (err, res) => {
+      index.echo(buf, (err, res) => {
         if (err) {
           console.log(err);
         }
         expect(res.toString('hex')).to.equal(buf.toString('hex'));
         done();
       });
-
-      index.echo(buf);
     });
 
     it('prompts slave to echo two bytes back to host', done => {
       const buf = new Buffer([0x01, 0x02]);
 
-      index.once('echo_rsp', (err, res) => {
+      index.echo(buf, (err, res) => {
         if (err) {
           console.log(err);
         }
         expect(res.toString('hex')).to.equal(buf.toString('hex'));
         done();
       });
-
-      index.echo(buf);
     });
 
     it('prompts slave to echo too many bytes back to host', done => {
-        const buf = new Buffer(new Array(30).fill(0xff));
+      const buf = new Buffer(new Array(30).fill(0xff));
 
-        index.once('echo_rsp', (err, res) => {
-        if (err) {
-          console.log(err);
-        }
-        expect(res.toString('hex')).to.equal(buf.toString('hex'));
-        done();
+      index.echo(buf, (err, res) => {
+      if (err) {
+        console.log(err);
+      }
+      expect(res.toString('hex')).to.equal(buf.toString('hex'));
+      done();
       });
-
-      index.echo(buf);
     });
 
     it('prompts the slave to return its build version', done => {
       const expected_result = '000803';
 
-      index.once('cmd_rsp', (err, res) => {
+      index.buildVersionGet((err, res) => {
         if (err) {
           console.log(err);
         }
         expect(res.toString('hex')).to.equal(expected_result);
         done();
       });
-
-      index.buildVersionGet();
     });
 
     it('prompts the slave to init the mesh', done => {
 
-      index.once('cmd_rsp', err => {
+      index.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL, err => {
         if (err) {
           console.log(err);
           expect(false).to.equal(true);
         }
         done();
       });
-
-      index.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL);
     });
 
     it('value set', done => {
-      index.once('cmd_rsp', err => {
+      index.valueSet(0, new Buffer([0x00, 0x01, 0x02]), err => {
         if (err) {
           console.log(err);
           expect(false).to.equal(true);
         }
         done();
       });
-
-
-      index.valueSet(0, new Buffer([0x00, 0x01, 0x02]));
     });
 
     it('value get', done => {
       const expected_result = '0000000102';
-      index.once('cmd_rsp', (err, res) => {
+
+      index.valueGet(0,(err, res) => {
         if (err) {
           console.log(err);
         }
         expect(res.toString('hex')).to.equal(expected_result);
         done();
       });
-
-      index.valueGet(0);
     });
 
     it('value enable', done => {
-      index.once('cmd_rsp', err => {
+      index.valueEnable(0, err => {
         if (err) {
           console.log(err);
           expect(false).to.equal(true);
         }
         done();
       });
-
-      index.valueEnable(0);
     });
 
     it('value disable', done => {
-      index.once('cmd_rsp', err => {
+      index.valueDisable(0, err => {
         if (err) {
           console.log(err);
           expect(false).to.equal(true);
         }
         done();
       });
-
-      index.valueDisable(0);
     });
 
     it('prompts the slave to return its access address', done => {
       const expected_result = MESH_ACCESS_ADDR_STRING; // TODO: Figure out what is going on. Little endian?.
 
-      index.once('cmd_rsp', (err, res) => {
+      index.accessAddrGet((err, res) => {
         if (err) {
           console.log(err);
         }
         expect(res.toString('hex')).to.equal(expected_result);
         done();
       });
-
-      index.accessAddrGet();
     });
 
     it('prompts the slave to return its advertising channel', done => {
       const expected_result = MESH_CHANNEL_STRING;
 
-      index.once('cmd_rsp', (err, res) => {
+      index.channelGet((err, res) => {
         if (err) {
           console.log(err);
         }
         expect(res.toString('hex')).to.equal(expected_result);
         done();
       });
-
-      index.channelGet();
     });
 
     it('prompts the slave to return its min interval', done => {
       const expected_result = MESH_INTERVAL_MIN_MS_STRING;
 
-      index.once('cmd_rsp', (err, res) => {
+      index.intervalMinGet((err, res) => {
         if (err) {
           console.log(err);
         }
         expect(res.toString('hex')).to.equal(expected_result);
         done();
       });
-
-      index.intervalMinGet();
-    });
-
-    it('sends multiple commands one after the other', done => {
-      const buf = new Buffer([0x01]);
-
-      index.once('echo_rsp', (err, res) => {
-        if (err) {
-          console.log(err);
-        }
-        expect(res.toString('hex')).to.equal(buf.toString('hex'));
-      });
-
-      index.echo(buf);
-
-      const expected_result = '000803';
-
-      index.once('cmd_rsp', (err, res) => {
-        if (err) {
-          console.log(err);
-        }
-        expect(res.toString('hex')).to.equal(expected_result);
-        done();
-      });
-
-      index.buildVersionGet();
     });
 
     it('prompts the slave to stop the mesh', done => {
-      index.once('cmd_rsp', err => {
+      index.stop(err => {
         if (err) {
           console.log(err);
           expect(false).to.equal(true);
         }
         done();
       });
-
-      index.stop();
     });
 
     it('prompts the slave to start the mesh', done => {
-      index.once('cmd_rsp', err => {
+      index.start(err => {
         if (err) {
           console.log(err);
           expect(false).to.equal(true);
         }
         done();
       });
-
-      index.start();
     });
 
     it('prompts the slave to perform a radio reset', done => {
-      index.once('cmd_rsp', err => {
+      index.radioReset(err => {
         if (err) {
           console.log(err);
           expect(false).to.equal(true);
         }
         done();
       });
-
-      index.radioReset();
-    });*/
+    });
 });
