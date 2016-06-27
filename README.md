@@ -76,6 +76,7 @@ const ble = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
     });
   });
 });
+```
 
 ## API
 
