@@ -17,7 +17,7 @@ describe('#serial interface unit tests', () => {
     const index = new BLEMeshSerialInterface('COM45');
 
     index.on('an_event', () => {
-      console.log('launced an event')
+      console.log('launched an event')
     })
 
     beforeEach(done => {
@@ -27,6 +27,56 @@ describe('#serial interface unit tests', () => {
           }
           done();
         });
+    });
+
+    it('tests _buildResponse() on single command response', () => {
+      const resp = new Buffer([0x03, 0x84, 0x74, 0x00]);
+
+      index._buildResponse(resp);
+      expect(index._responseQueue.shift().toString('hex')).to.equal(resp.toString('hex'));
+      expect(index._tempBuildResponse).to.equal(null);
+    });
+
+    it('tests _buildResponse() on single event response', () => {
+      const resp = new Buffer([0x03, 0xb3, 0x00, 0x00]);
+
+      index._buildResponse(resp);
+      expect(index._responseQueue.shift().toString('hex')).to.equal(resp.toString('hex'));
+      expect(index._tempBuildResponse).to.equal(null);
+    });
+
+    it('tests _buildResponse() on two event responses', () => {
+      const resp = new Buffer([0x04, 0xb3, 0x00, 0x00, 0x00, 0x05, 0xb4, 0x00, 0x00, 0x00, 0x00]);
+
+      index._buildResponse(resp);
+      expect(index._responseQueue.shift().toString('hex')).to.equal(resp.slice(0, 5).toString('hex'));
+      expect(index._responseQueue.shift().toString('hex')).to.equal(resp.slice(5).toString('hex'));
+      expect(index._tempBuildResponse).to.equal(null);
+    });
+
+    it('tests _buildResponse() on a broken up response', () => {
+      const resp1 = new Buffer([0x06, 0xb3, 0x00, 0x00]);
+      const resp2 = new Buffer([0x00, 0x00, 0x00]);
+
+      const expectedResp = Buffer.concat([resp1, resp2]);
+
+      index._buildResponse(resp1);
+      index._buildResponse(resp2);
+      expect(index._responseQueue.shift().toString('hex')).to.equal(expectedResp.toString('hex'));
+      expect(index._tempBuildResponse).to.equal(null);
+    });
+
+    it('tests _buildResponse() on a broken up response followed by two resopnse', () => {
+      const resp1 = new Buffer([0x06, 0xb3, 0x00, 0x00]);
+      const resp2 = new Buffer([0x00, 0x00, 0x00, 0x04, 0xb4, 0x00, 0x00, 0x00]);
+
+      const expectedResp = Buffer.concat([resp1, resp2]);
+
+      index._buildResponse(resp1);
+      index._buildResponse(resp2);
+      expect(index._responseQueue.shift().toString('hex')).to.equal(expectedResp.slice(0, 7).toString('hex'));
+      expect(index._responseQueue.shift().toString('hex')).to.equal(expectedResp.slice(7).toString('hex'));
+      expect(index._tempBuildResponse).to.equal(null);
     });
 
     it('tests _isCommandResponse()', () => {
@@ -51,7 +101,8 @@ describe('#serial interface unit tests', () => {
       expect(res).to.equal(false);
 
     });
-    it('prompts slave to echo one byte back to host', done => {
+
+    /*it('prompts slave to echo one byte back to host', done => {
       const buf = new Buffer([0x01]);
 
       index.once('echo_rsp', (err, res) => {
@@ -271,5 +322,5 @@ describe('#serial interface unit tests', () => {
       });
 
       index.radioReset();
-    });
+    });*/
 });

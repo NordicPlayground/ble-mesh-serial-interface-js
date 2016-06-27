@@ -63,10 +63,10 @@ class BLEMeshSerialInterface extends EventEmitter {
       rtscts = true;
     }
 
-    this._tempBuildResponse;
+    this._callback;
+    this._responseQueue = [];
 
-    this._eventResponseQueue = [];
-    this._commandResponseQueue = [];
+    this._tempBuildResponse;
 
     this._port = new SerialPort.SerialPort(serialPort, {
       baudRate: baudRate,
@@ -74,11 +74,13 @@ class BLEMeshSerialInterface extends EventEmitter {
     });
 
     this._port.on('open', () => {
-      this.emit('open');
+      this.emit('open'); // TODO: should this be a callback?
+      console.log('serial port opened');
     });
 
     this._port.on('error', err => {
       if (err) {
+        this.emit('error', err);
         console.log('serial port error: ', err.message);
       }
     });
@@ -96,24 +98,17 @@ class BLEMeshSerialInterface extends EventEmitter {
   }
 
   /**
-   * Called recursively, command and event responses will be pushed onto the global response queues after this function completes.
    *
-   * Note: While this function does not return anything, it modifies class properties this._eventResponseQueue and this._commandResponseQueue.
    */
   _buildResponse(data) {
-    if (data.length <= 0) {
-      assert(data.length >= 0, 'some data was cut off in BLEMeshSerialInterface._buildResponse(data)')
-      return;
-    }
+    let length = data[0] + 1; // If we are in the middle of building a response this will be incorrect, and re-assigned below.
 
     if (!this._tempBuildResponse) {
       this._tempBuildResponse = new Buffer([]);
+    } else {
+      length = this._tempBuildResponse[0] + 1;
     }
 
-    let length = this._tempBuildResponse[0] + 1;
-    if (!length) {
-      length = data[0] + 1;
-    }
     let remainingLength = length - this._tempBuildResponse.length;
 
     if (remainingLength >= data.length) {
@@ -124,12 +119,11 @@ class BLEMeshSerialInterface extends EventEmitter {
 
     if (length === this._tempBuildResponse.length) {
       const response = new Buffer(this._tempBuildResponse);
-      if (this._isCommandResponse(response)) {
-        this._commandResponseQueue.push(response);
-      } else {
-        this._eventResponseQueue.push(response);
-      }
+      this._responseQueue.push(response);
       this._tempBuildResponse = null;
+    }
+
+    if (remainingLength < data.length) {
       this._buildResponse(data.slice(remainingLength));
     }
   }
