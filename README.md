@@ -50,7 +50,7 @@ const bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface('COM45', err => {
 'use strict';
 
 const FIRST_COM_PORT = 'COM45';
-const OPTIONAL_SECOND_COM_PORT = 'COM46;
+const OPTIONAL_SECOND_COM_PORT = 'COM46';
 
 const ble = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
   if (err) {
