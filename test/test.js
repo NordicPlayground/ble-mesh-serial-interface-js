@@ -14,7 +14,7 @@ let MESH_CHANNEL_STRING = '26';
 
 describe('#serial interface unit tests', () => {
 
-    const index = new BLEMeshSerialInterface('COM46');
+    const index = new BLEMeshSerialInterface('COM45');
 
     index.on('an_event', () => {
       console.log('launced an event')

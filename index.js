@@ -176,16 +176,16 @@ class BLEMeshSerialInterface extends EventEmitter {
 
     switch(responseOpCode) {
       case responseOpCodes.EVENT_NEW:
-        this.emit('event_new', data);
+        this.emit('eventNew', data);
         break;
       case responseOpCodes.EVENT_UPDATE:
-        this.emit('event_update', data);
+        this.emit('eventUpdate', data);
         break;
       case responseOpCodes.EVENT_CONFLICTING:
-        this.emit('event_conflicting', data);
+        this.emit('eventConflicting', data);
         break;
       case responseOpCodes.EVENT_TX:
-        this.emit('event_tx', data);
+        this.emit('eventTX', data);
         break;
       default:
         console.log('unknown event response received from slave device: ', response);
