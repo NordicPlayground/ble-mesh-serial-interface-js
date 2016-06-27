@@ -14,19 +14,10 @@ let MESH_CHANNEL_STRING = '26';
 
 describe('#serial interface unit tests', () => {
 
-    const index = new BLEMeshSerialInterface('COM45');
-
-    index.on('an_event', () => {
-      console.log('launched an event')
-    })
-
-    beforeEach(done => {
-        index._port.flush(err => {
-          if (err) {
-            console.log(err);
-          }
-          done();
-        });
+    const index = new BLEMeshSerialInterface('COM45', err => {
+      if (err) {
+        console.log(err);
+      }
     });
 
     it('tests _buildResponse() on single command response', () => {
@@ -99,7 +90,6 @@ describe('#serial interface unit tests', () => {
 
       res = index._isCommandResponse(resp4);
       expect(res).to.equal(false);
-
     });
 
     it('prompts slave to echo one byte back to host', done => {
@@ -151,7 +141,6 @@ describe('#serial interface unit tests', () => {
     });
 
     it('prompts the slave to init the mesh', done => {
-
       index.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL, err => {
         if (err) {
           console.log(err);
@@ -266,6 +255,65 @@ describe('#serial interface unit tests', () => {
           expect(false).to.equal(true);
         }
         done();
+      });
+    });
+
+    it('prompts slave to echo two bytes back to host', done => {
+      index.once('deviceStarted', () => {
+        console.log('deviceStarted')
+
+        const buf = new Buffer([0x01, 0x02]);
+
+        index.echo(buf, (err, res) => {
+          if (err) {
+            console.log(err);
+          }
+          expect(res.toString('hex')).to.equal(buf.toString('hex'));
+          done();
+        });
+        })
+    });
+
+
+    it('tests a realistic use case', done => {
+      index._port.close(err => {
+        if (err) {
+          console.log(err);
+        }
+
+        const ble = new BLEMeshSerialInterface('COM45', err => {
+          ble.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL, err => {
+            if (err) {
+              console.log(err);
+              expect(false).to.equal(true);
+            }
+
+            ble.valueSet(0, new Buffer([0x00, 0x01, 0x02]), err => {
+              if (err) {
+                console.log(err);
+                expect(false).to.equal(true);
+              }
+
+              const expected_result = '0000000102';
+
+              ble.valueGet(0,(err, res) => {
+                if (err) {
+                  console.log(err);
+                }
+
+                expect(res.toString('hex')).to.equal(expected_result);
+
+                ble.radioReset(err => {
+                  if (err) {
+                    console.log(err);
+                    expect(false).to.equal(true);
+                  }
+                  done();
+                });
+              });
+            });
+          });
+        });
       });
     });
 });

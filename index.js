@@ -1,8 +1,6 @@
 'use strict';
 
-const assert = require('assert');
 const EventEmitter = require('events');
-
 const SerialPort = require('serialport');
 
 const commandOpCodes = { // TODO: Still additional codes to add and implement.
@@ -54,7 +52,7 @@ class BLEMeshSerialInterface extends EventEmitter {
    * Note: Upon opening the serial port, the received data buffer will be flushed and read. So any events or responses the slave device has queued will
    * be logged to the console.
    */
-  constructor(serialPort, baudRate, rtscts) {
+  constructor(serialPort, callback, baudRate, rtscts) {
     super();
 
     if (!baudRate) { // TODO: Better way to do this?
@@ -73,9 +71,30 @@ class BLEMeshSerialInterface extends EventEmitter {
       rtscts: rtscts
     });
 
-    this._port.on('open', () => {
-      this.emit('open'); // TODO: should this be a callback?
-      console.log('serial port opened');
+    this._port.on('close', () => {
+      this.emit('closed');
+      console.log('serial port closed');
+    });
+
+    this._port.on('data', data => {
+      this._buildResponse(data);
+
+      while (this._responseQueue.length !== 0) {
+        const response = this._responseQueue.shift();
+        if (this._isCommandResponse(response)) {
+          this._handleCommandResponse(response);
+        } else {
+          this._handleEventResponse(response);
+        }
+      }
+    });
+
+    this._port.on('disconnect', err => {
+      if (err) {
+        console.log('serial port disconnect error: ', err);
+      }
+      this.emit('disconnected');
+      console.log('serial port disconnected');
     });
 
     this._port.on('error', err => {
@@ -85,17 +104,9 @@ class BLEMeshSerialInterface extends EventEmitter {
       }
     });
 
-    this._port.on('data', data => {
-      this._buildResponse(data);
-
-      while (this._responseQueue.length != 0) {
-        const response = this._responseQueue.shift();
-        if (this._isCommandResponse(response)) {
-          this._handleCommandResponse(response);
-        } else {
-          this._handleEventResponse(response);
-        }
-      }
+    this._port.on('open', () => {
+      console.log('serial port opened');
+      callback();
     });
   }
 
@@ -171,6 +182,9 @@ class BLEMeshSerialInterface extends EventEmitter {
     const data = response.slice(4);
 
     switch(responseOpCode) {
+      case responseOpCodes.DEVICE_STARTED:
+        this.emit('deviceStarted', data);
+        break;
       case responseOpCodes.EVENT_NEW:
         this.emit('eventNew', data);
         break;

@@ -1,15 +1,3 @@
-ble-mesh-serial-interface-js
-=========
-
-An npm package for Node.js that provides an API to control a router node in a BLE mesh network via the serial port.
-
-## Installation
-
-  `npm install ble-mesh-serial-interface-js`
-
-## Usage
-
-```javascript
 'use strict';
 
 const BLEMeshSerialInterface = require('./index');
@@ -44,12 +32,3 @@ const bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface('COM45', err => {
     });
   });
 });
-```
-
-## Tests
-
-  `npm test`
-
-## Contributing
-
-In lieu of a formal style guide, take care to maintain the existing coding style. Add unit tests for any new or changed functionality. Lint and test your code.
