@@ -12,8 +12,8 @@ const MESH_ACCESS_ADDR_STRING = 'd6be898e';
 const MESH_INTERVAL_MIN_MS_STRING = '64000000';
 const MESH_CHANNEL_STRING = '26';
 
-const FIRST_COM_PORT = 'COM46';
-const OPTIONAL_SECOND_COM_PORT = 'COM45';
+const FIRST_COM_PORT = 'COM45';
+//const OPTIONAL_SECOND_COM_PORT = 'COM45';
 
 describe('#serial interface unit tests', () => {
   let index = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
@@ -184,6 +184,56 @@ describe('#serial interface unit tests', () => {
     });
   });
 
+  it('value set with value get directly after', done => {
+    index.valueSet(0, new Buffer([0x00, 0x01, 0x02]), err => {
+      if (err) {
+        console.log(err);
+        expect(false).to.equal(true);
+      }
+      const expected_result = '0000000102';
+
+      index.valueGet(0,(err, res) => {
+        if (err) {
+          console.log(err);
+        }
+        expect(res.toString('hex')).to.equal(expected_result);
+        done();
+      });
+    });
+  });
+
+  it('value set with value get directly after', done => {
+    index.valueSet(1, new Buffer([0x00, 0x01, 0x02]), err => {
+      if (err) {
+        console.log(err);
+        expect(false).to.equal(true);
+      }
+      const expected_result = '0100000102';
+
+      index.valueGet(1,(err, res) => {
+        if (err) {
+          console.log(err);
+        }
+        expect(res.toString('hex')).to.equal(expected_result);
+        index.valueSet(1, new Buffer([0x00, 0x01, 0x03]), err => {
+          if (err) {
+            console.log(err);
+            expect(false).to.equal(true);
+          }
+          const expected_result = '0100000103';
+
+          index.valueGet(1,(err, res) => {
+            if (err) {
+              console.log(err);
+            }
+            expect(res.toString('hex')).to.equal(expected_result);
+            done();
+          });
+        });
+      });
+    });
+  });
+
   it('value enable', done => {
     index.valueEnable(0, err => {
       if (err) {
@@ -334,7 +384,7 @@ describe('#serial interface unit tests', () => {
     });
   });*/
 
-  it('tests switching ports', done => {
+  /*it('tests switching ports', done => {
     index.closeSerialPort(err => {
       if (err) {
         console.log(err);
@@ -368,6 +418,6 @@ describe('#serial interface unit tests', () => {
         });
       });
     });
-  });
+  });*/
 
 });

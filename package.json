@@ -29,8 +29,8 @@
   },
   "homepage": "https://github.com/NordicSemiconductor/ble-mesh-serial-interface-js#readme",
   "devDependencies": {
-    "chai": "^3.5.0",
-    "mocha": "^2.5.3"
+    "chai": "*",
+    "mocha": "*"
   },
   "dependencies": {
     "serialport": "^4.0.0-rc1"
