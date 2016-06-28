@@ -46,8 +46,11 @@ const statusCodes = {
 
 
 class BLEMeshSerialInterface extends EventEmitter {
-  constructor(serialPort, callback, baudRate=115200, rtscts=true) {
+  constructor(serialPort, callback, baudRate, rtscts) {
     super();
+
+    if (typeof baudRate === 'undefined') { baudRate = 115200; }
+    if (typeof rtscts === 'undefined') { rtscts = true; }
 
     this._port = new SerialPort.SerialPort(serialPort, {baudRate: baudRate, rtscts: rtscts}, callback);
 
@@ -188,10 +191,13 @@ class BLEMeshSerialInterface extends EventEmitter {
     }
   }
 
-  openSerialPort(serialPort, callback, baudRate=115200, rtscts=true) {
+  openSerialPort(serialPort, callback, baudRate, rtscts) {
     if (this._port.isOpen()) {
       return callback(new Error('error, serial port is open and must be closed before calling this function'));
     }
+
+    if (typeof baudRate === 'undefined') { baudRate = 115200; }
+    if (typeof rtscts === 'undefined') { rtscts = true; }
 
     this._port.path = serialPort;
     this._port.options.baudRate = baudRate;
@@ -199,7 +205,7 @@ class BLEMeshSerialInterface extends EventEmitter {
 
     this._port.open(err => {
       callback(err);
-    })
+    });
   }
 
   writeSerialPort(data) {

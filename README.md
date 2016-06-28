@@ -49,6 +49,8 @@ const bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface('COM45', err => {
 ```javascript
 'use strict';
 
+const BLEMeshSerialInterface = require('./index');
+
 const FIRST_COM_PORT = 'COM45';
 const OPTIONAL_SECOND_COM_PORT = 'COM46;
 
