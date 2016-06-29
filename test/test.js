@@ -131,7 +131,7 @@ describe('#serial interface unit tests', () => {
   });
 
   it('prompts the slave to return its build version', done => {
-    const expected_result = '000803';
+    const expected_result = '000805';
 
     index.buildVersionGet((err, res) => {
       if (err) {
