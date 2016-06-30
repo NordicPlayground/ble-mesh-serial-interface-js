@@ -1,24 +1,36 @@
 'use strict';
 
-var expect = require('chai').expect;
+const expect = require('chai').expect;
+const assert = require('chai').assert;
 
-let BLEMeshSerialInterface = require('../index');
+const BLEMeshSerialInterface = require('../index');
 
 const MESH_ACCESS_ADDR = 0x8E89BED6;
 const MESH_INTERVAL_MIN_MS = 100;
-const MESH_CHANNEL = 38;
+const MESH_ADVERTISING_CHANNEL = 38;
 
-const MESH_ACCESS_ADDR_STRING = 'd6be898e';
-const MESH_INTERVAL_MIN_MS_STRING = '64000000';
-const MESH_CHANNEL_STRING = '26';
+const MESH_ACCESS_ADDR_ARRAY = [0xD6, 0xBE, 0x89, 0x8E];
+const MESH_INTERVAL_MIN_MS_ARRAY = [0x64, 0, 0, 0];
+const MESH_ADVERTISING_CHANNEL_ARRAY = [38];
 
 const FIRST_COM_PORT = 'COM45';
 const SECOND_COM_PORT = 'COM46';
 
-function check_err(err) {
+function checkError(err) {
   if (err) {
       console.log(err);
   }
+}
+
+function arraysEqual(arr1, arr2) {
+    if(arr1.length !== arr2.length)
+        return false;
+    for(let i = arr1.length; i--;) {
+        if(arr1[i] !== arr2[i])
+            return false;
+    }
+
+    return true;
 }
 
 describe('helper function tests', function() {
@@ -34,14 +46,14 @@ describe('helper function tests', function() {
       });
 
       bleMeshSerialInterfaceAPI.radioReset(err => {
-        check_err(err)
+        checkError(err)
       });
     });
   });
 
   after(function(done) {
     bleMeshSerialInterfaceAPI.closeSerialPort(err => {
-      check_err(err);
+      checkError(err);
       bleMeshSerialInterfaceAPI = null;
       done();
     });
@@ -132,230 +144,175 @@ describe('serial interface command unit tests -- tests are not self-contained', 
       });
 
       bleMeshSerialInterfaceAPI.radioReset(err => {
-        check_err(err)
+        checkError(err)
       });
     });
   });
 
   after(function(done) {
     bleMeshSerialInterfaceAPI.closeSerialPort(err => {
-      check_err(err);
+      checkError(err);
       bleMeshSerialInterfaceAPI = null;
       done();
     });
   });
 
   it('prompts slave to echo one byte back to host', done => {
-    const buf = new Buffer([0x01]);
+    const buf = [0x01];
 
     bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
-      if (err) {
-        console.log(err);
-      }
-      expect(res.toString('hex')).to.equal(buf.toString('hex'));
+      checkError(err);
+      assert(arraysEqual(buf, res), 'echoed data is not equal to what was sent');
       done();
     });
   });
 
   it('prompts slave to echo two bytes back to host', done => {
-    const buf = new Buffer([0x01, 0x02]);
+    const buf = [0x01, 0x02];
 
     bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
-      if (err) {
-        console.log(err);
-      }
-      expect(res.toString('hex')).to.equal(buf.toString('hex'));
+      checkError(err);
+      assert(arraysEqual(buf, res), 'echoed data is not equal to what was sent');
       done();
     });
   });
 
   it('prompts slave to echo too many bytes back to host', done => {
-    const buf = new Buffer(new Array(30).fill(0xff));
+    const buf = new Array(30).fill(0xff);
 
     bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
-    if (err) {
-      console.log(err);
-    }
-    expect(res.toString('hex')).to.equal(buf.toString('hex'));
-    done();
+      checkError(err);
+      assert(arraysEqual(buf, res), 'echoed data is not equal to what was sent');
+      done();
     });
   });
 
-  it('prompts the slave to return its build version', done => {
-    const expected_result = '000805';
+  it('prompts slave to return its build version', done => {
+    const buf = [0x0, 0x8, 0x5];
 
     bleMeshSerialInterfaceAPI.buildVersionGet((err, res) => {
-      if (err) {
-        console.log(err);
-      }
-      expect(res.toString('hex')).to.equal(expected_result);
+      checkError(err);
+      assert(arraysEqual(buf, res), 'unexpected build version returned');
       done();
     });
   });
 
-  it('prompts the slave to init the mesh', done => {
-    bleMeshSerialInterfaceAPI.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL, err => {
+  it('prompts slave to initialize the mesh', done => {
+    bleMeshSerialInterfaceAPI.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_ADVERTISING_CHANNEL, err => {
       if (err) {
         console.log(err);
-        expect(false).to.equal(true);
+        assert(false, 'error initializing the device');
       }
       done();
     });
   });
 
-  it('prompts the slave to init the mesh, already inti so should fail', done => {
-    bleMeshSerialInterfaceAPI.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL, err => {
+  it('prompts slave to initialize the mesh, already initialize so should fail with status code error', done => {
+    bleMeshSerialInterfaceAPI.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_ADVERTISING_CHANNEL, err => {
       if (err) {
         console.log(err);
         done();
       }
-      expect(false).to.equal(true);
+      assert(false, 'error, should not have succeeded to initialize an already initialized device');
     });
   });
 
-  it('value set', done => {
-    bleMeshSerialInterfaceAPI.valueSet(0, new Buffer([0x00, 0x01, 0x02]), err => {
+  it('prompts slave to set the value of handle 0', done => {
+    bleMeshSerialInterfaceAPI.valueSet(0, [0x00, 0x01, 0x02], err => {
       if (err) {
         console.log(err);
-        expect(false).to.equal(true);
+        assert(false, 'error setting the value of a handle on the mesh');
       }
       done();
     });
   });
 
-  it('value get', done => {
-    const expected_result = '0000000102';
+  it('prompts slave to get the value of handle 0', done => {
+    const buf = [0, 0, 0x00, 0x01, 0x02]; // TODO: should just be the value, not handle first.
 
-    bleMeshSerialInterfaceAPI.valueGet(0,(err, res) => {
-      if (err) {
-        console.log(err);
-      }
-      expect(res.toString('hex')).to.equal(expected_result);
+    bleMeshSerialInterfaceAPI.valueGet(0, (err, res) => {
+      checkError(err);
+      assert(arraysEqual(buf, res), 'incorrect value for handle 0');
       done();
     });
   });
 
-  it('value set with value get directly after', done => {
-    bleMeshSerialInterfaceAPI.valueSet(0, new Buffer([0x00, 0x01, 0x02]), err => {
+  it('set the value of a handle, and then get it directly after', done => {
+    const buf = [0x00, 0x01, 0x02];
+
+    bleMeshSerialInterfaceAPI.valueSet(0, buf, err => {
       if (err) {
         console.log(err);
-        expect(false).to.equal(true);
+        assert(false, 'failed to set the value of handle 0');
       }
-      const expected_result = '0000000102';
 
-      bleMeshSerialInterfaceAPI.valueGet(0,(err, res) => {
-        if (err) {
-          console.log(err);
-        }
-        expect(res.toString('hex')).to.equal(expected_result);
+      bleMeshSerialInterfaceAPI.valueGet(0, (err, res) => {
+        checkError(err);
+        assert(arraysEqual(res, [0, 0, 0, 1, 2]), 'value of handle 0 is not what we set it to');
         done();
       });
     });
   });
 
-  it('value set with value get directly after', done => {
-    bleMeshSerialInterfaceAPI.valueSet(1, new Buffer([0x00, 0x01, 0x02]), err => {
+  it('prompts slave to enable handle 1', done => {
+    bleMeshSerialInterfaceAPI.valueEnable(1, err => {
       if (err) {
         console.log(err);
-        expect(false).to.equal(true);
-      }
-      const expected_result = '0100000102';
-
-      bleMeshSerialInterfaceAPI.valueGet(1,(err, res) => {
-        if (err) {
-          console.log(err);
-        }
-        expect(res.toString('hex')).to.equal(expected_result);
-        bleMeshSerialInterfaceAPI.valueSet(1, new Buffer([0x00, 0x01, 0x03]), err => {
-          if (err) {
-            console.log(err);
-            expect(false).to.equal(true);
-          }
-          const expected_result = '0100000103';
-
-          bleMeshSerialInterfaceAPI.valueGet(1,(err, res) => {
-            if (err) {
-              console.log(err);
-            }
-            expect(res.toString('hex')).to.equal(expected_result);
-            done();
-          });
-        });
-      });
-    });
-  });
-
-  it('value enable', done => {
-    bleMeshSerialInterfaceAPI.valueEnable(0, err => {
-      if (err) {
-        console.log(err);
-        expect(false).to.equal(true);
+        assert(false, 'failed to enable handle 1');
       }
       done();
     });
   });
 
-  it('value disable', done => {
-    bleMeshSerialInterfaceAPI.valueDisable(0, err => {
+  it('prompts slave to disable handle 1', done => {
+    bleMeshSerialInterfaceAPI.valueDisable(1, err => {
       if (err) {
         console.log(err);
-        expect(false).to.equal(true);
+        assert(false, 'failed to disable handle 1');
       }
       done();
     });
   });
 
-  it('prompts the slave to return its access address', done => {
-    const expected_result = MESH_ACCESS_ADDR_STRING; // TODO: Figure out what is going on. Little endian?.
-
+  it('prompts slave to return its access address', done => {
     bleMeshSerialInterfaceAPI.accessAddrGet((err, res) => {
-      if (err) {
-        console.log(err);
-      }
-      expect(res.toString('hex')).to.equal(expected_result);
+      checkError(err);
+      assert(arraysEqual(MESH_ACCESS_ADDR_ARRAY, res), 'incorrect mesh access address');
       done();
     });
   });
 
-  it('prompts the slave to return its advertising channel', done => {
-    const expected_result = MESH_CHANNEL_STRING;
-
+  it('prompts slave to return its advertising channel', done => {
     bleMeshSerialInterfaceAPI.channelGet((err, res) => {
-      if (err) {
-        console.log(err);
-      }
-      expect(res.toString('hex')).to.equal(expected_result);
+      checkError(err);
+      assert(arraysEqual(MESH_ADVERTISING_CHANNEL_ARRAY, res), 'incorrect mesh advertising channel');
       done();
     });
   });
 
-  it('prompts the slave to return its min interval', done => {
-    const expected_result = MESH_INTERVAL_MIN_MS_STRING;
-
+  it('prompts slave to return its minimum rebroadcasting interval', done => {
     bleMeshSerialInterfaceAPI.intervalMinGet((err, res) => {
-      if (err) {
-        console.log(err);
-      }
-      expect(res.toString('hex')).to.equal(expected_result);
+      checkError(err);
+      assert(arraysEqual(MESH_INTERVAL_MIN_MS_ARRAY, res), 'incorrect minimum rebroadcasting interval');
       done();
     });
   });
 
-  it('prompts the slave to stop the mesh', done => {
+  it('prompts slave to stop the mesh from broadcasting', done => {
     bleMeshSerialInterfaceAPI.stop(err => {
       if (err) {
         console.log(err);
-        expect(false).to.equal(true);
+        assert(false, 'failed to stop the mesh from broadcasting');
       }
       done();
     });
   });
 
-  it('prompts the slave to start the mesh', done => {
+  it('prompts slave to start broadcasting on the mesh', done => {
     bleMeshSerialInterfaceAPI.start(err => {
       if (err) {
         console.log(err);
-        expect(false).to.equal(true);
+        assert(false, 'failed to start broadcasting on the mesh');
       }
       done();
     });
@@ -368,33 +325,29 @@ describe('serial interface command unit tests -- tests are not self-contained', 
     bleMeshSerialInterfaceAPI.radioReset(err => {
       if (err) {
         console.log(err);
-        expect(false).to.equal(true);
+        assert(false, 'failed to reset the slave');
       }
     });
   });
 
   it('prompts slave to echo two bytes back to host', done => {
-    const buf = new Buffer([0x01, 0x02]);
+    const buf = [0x01, 0x02];
 
     bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
-      if (err) {
-        console.log(err);
-      }
-      expect(res.toString('hex')).to.equal(buf.toString('hex'));
+      checkError(err);
+      assert(arraysEqual(buf, res), 'echoed data is not equal to what was sent');
       done();
     });
   });
 
-  it('sends dfu data packet', done => {
-    const buf = new Buffer(new Array(23).fill(0xff));
-    const handle = new Buffer([0xFF, 0xFE]);
+  it('sends dfu data packet', done => { // This should fail since the FW doesn't have a bootloader/isn't configured for DFU.
+    const buf = new Array(23).fill(0xff);
 
     bleMeshSerialInterfaceAPI.dfuData(buf, (err, res) => {
       if (err) {
         console.log(err);
+        done();
       }
-      expect(res.toString('hex')).to.equal(handle.toString('hex'));
-      done();
     });
   });
 

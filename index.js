@@ -83,6 +83,14 @@ class BLEMeshSerialInterface extends EventEmitter {
     });
   }
 
+  bufferToArray(buf) {
+    let array = [];
+    for (let i = 0; i < buf.length; i++) {
+      array[i] = buf[i];
+    }
+    return array;
+  }
+
   buildResponse(data) {
     let length = data[0] + 1; // If we are in the middle of building a response this will be incorrect, and re-assigned below.
 
@@ -118,7 +126,9 @@ class BLEMeshSerialInterface extends EventEmitter {
     return ((val >> (8 * index)) & 0xFF);
   }
 
-  _handleCommandResponse(response) {
+  _handleCommandResponse(resp) {
+    let response = this.bufferToArray(resp);
+
     if (response[0] === 0 & response.length === 1) {
       this._callback(null, response);
       return;
@@ -128,7 +138,7 @@ class BLEMeshSerialInterface extends EventEmitter {
 
     switch(responseOpCode) {
       case responseOpCodes.ECHO_RSP:
-        this._callback(null, response.slice(2));
+        this._callback(null, this.bufferToArray(response.slice(2)));
         break;
       case responseOpCodes.CMD_RSP:
         const statusCode = response[3];
@@ -149,7 +159,7 @@ class BLEMeshSerialInterface extends EventEmitter {
 
   _handleEventResponse(response) {
     const responseOpCode = response[1];
-    const data = response.slice(2);
+    const data = this.bufferToArray(response.slice(2));
 
     switch(responseOpCode) {
       case responseOpCodes.DEVICE_STARTED:
@@ -219,9 +229,10 @@ class BLEMeshSerialInterface extends EventEmitter {
 
   /* nRF Open Mesh Serial Interface */
 
-  echo(buffer, callback) {
-    const buf = new Buffer([buffer.length + 1, commandOpCodes.ECHO]);
-    const command = Buffer.concat([buf, buffer]);
+  echo(data, callback) {
+    const buf = [data.length + 1, commandOpCodes.ECHO];
+    const command = new Buffer(buf.concat(data));
+
 
     this._callback = callback;
     this.writeSerialPort(command);
@@ -249,9 +260,9 @@ class BLEMeshSerialInterface extends EventEmitter {
     this.writeSerialPort(command);
   }
 
-  valueSet(handle, buffer, callback) {
-    const buf = new Buffer([3 + buffer.length, commandOpCodes.VALUE_SET, this._byte(handle, 0), this._byte(handle, 1)]);
-    const command = Buffer.concat([buf, buffer]);
+  valueSet(handle, data, callback) {
+    const buf =[3 + data.length, commandOpCodes.VALUE_SET, this._byte(handle, 0), this._byte(handle, 1)];
+    const command = new Buffer(buf.concat(data));
 
     this._callback = callback;
     this.writeSerialPort(command);
@@ -314,8 +325,8 @@ class BLEMeshSerialInterface extends EventEmitter {
   }
 
   dfuData(data, callback) {
-    const buf = new Buffer([data.length + 1, commandOpCodes.DFU_DATA]);
-    const command = new Buffer.concat([buf, data]);
+    const buf = [data.length + 1, commandOpCodes.DFU_DATA];
+    const command = new Buffer(buf.concat(data));
 
     this._callback = callback;
     this.writeSerialPort(command);
