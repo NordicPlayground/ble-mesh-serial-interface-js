@@ -39,6 +39,10 @@ const bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface(COM_PORT, err => {
   bleMeshSerialInterfaceAPI.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL, err => {
     check_err(err)
     console.log('device initialized, listening to the mesh...');
+    bleMeshSerialInterfaceAPI.dfuData(new Buffer(new Array(23).fill(0xff)), (err, res) => {
+      check_err(err)
+      console.log('dfuData...');
+    });
     /*bleMeshSerialInterfaceAPI.valueSet(10, new Buffer([0x00, 0x01, 0x02]), err => {
       check_err(err)
       console.log('valueSet()');

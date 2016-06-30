@@ -334,6 +334,19 @@ describe('#serial interface unit tests', () => {
     });
   });
 
+  it('sends dfu data packet', done => {
+    const buf = new Buffer(new Array(23).fill(0xff));
+    const handle = new Buffer([0xFF, 0xFE]);
+
+    index.dfuData(buf, (err, res) => {
+      if (err) {
+        console.log(err);
+      }
+      expect(res.toString('hex')).to.equal(handle.toString('hex'));
+      done();
+    });
+  });
+
   /*it('tests a realistic use case', done => {
     index.closeSerialPort(err => {
       if (err) {

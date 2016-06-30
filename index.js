@@ -12,6 +12,7 @@ const commandOpCodes = { // TODO: Still additional codes to add and implement.
   'VALUE_SET': 0x71,
   'VALUE_ENABLE': 0x72,
   'VALUE_DISABLE': 0x73,
+  'DFU_DATA': 0x78,
   'VALUE_GET': 0x7a,
   'BUILD_VERSION_GET': 0x7b,
   'ACCESS_ADDR_GET': 0x7c,
@@ -307,6 +308,14 @@ class BLEMeshSerialInterface extends EventEmitter {
 
   radioReset(callback) {
     const command = new Buffer([1, commandOpCodes.RADIO_RESET]);
+
+    this._callback = callback;
+    this.writeSerialPort(command);
+  }
+
+  dfuData(data, callback) {
+    const buf = new Buffer([data.length + 1, commandOpCodes.DFU_DATA]);
+    const command = new Buffer.concat([buf, data]);
 
     this._callback = callback;
     this.writeSerialPort(command);
