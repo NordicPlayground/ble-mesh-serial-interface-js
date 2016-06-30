@@ -178,7 +178,7 @@ class BLEMeshSerialInterface extends EventEmitter {
         this.emit('eventTX', data);
         break;
       default:
-        console.log('unknown event response received from slave device: ', response);
+        console.log('unknown event response received from slave device: ', response); // TODO: shouldn't return a buffer here.
     }
   }
 

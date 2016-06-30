@@ -12,7 +12,7 @@ An npm package for Node.js that provides an API to control a router node in a BL
 ```javascript
 'use strict';
 
-const BLEMeshSerialInterface = require('./index');
+const BLEMeshSerialInterface = require('./BLEMeshSerialInterface');
 
 const MESH_ACCESS_ADDR = 0x8E89BED6;
 const MESH_INTERVAL_MIN_MS = 100;
@@ -49,7 +49,7 @@ const bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface('COM45', err => {
 ```javascript
 'use strict';
 
-const BLEMeshSerialInterface = require('./index');
+const BLEMeshSerialInterface = require('./BLEMeshSerialInterface');
 
 const FIRST_COM_PORT = 'COM45';
 const OPTIONAL_SECOND_COM_PORT = 'COM46';
