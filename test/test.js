@@ -274,11 +274,38 @@ describe('serial interface command unit tests -- tests are not self-contained', 
     });
   });
 
+  it('prompts slave to set the persistence of handle 1', done => {
+    bleMeshSerialInterfaceAPI.flagSet(1, (err, res) => {
+      if (err) {
+        console.log(err);
+        assert(false, 'failed to set the persistence flag of handle 1');
+      }
+      done();
+    });
+  });
+
   it('prompts slave to get the persistence of handle 1', done => {
     bleMeshSerialInterfaceAPI.flagGet(1, (err, res) => {
       checkError(err);
-      console.log('here', res);
-      assert(arraysEqual(res, [1, 0, 0, 0]), 'persistence of handle 1 has not been set yet');
+      assert(arraysEqual(res, [1, 0, 0, 1]), 'persistence of handle 1 has not been set yet');
+      done();
+    });
+  });
+
+  it('prompts slave to set the tx event on handle 1', done => {
+    bleMeshSerialInterfaceAPI.txEventSet(1, (err, res) => {
+      if (err) {
+        console.log(err);
+        assert(false, 'failed to set the tx event on handle 1');
+      }
+      done();
+    });
+  });
+
+  it('prompts slave to get the tx event of handle 1', done => {
+    bleMeshSerialInterfaceAPI.txEventGet(1, (err, res) => {
+      checkError(err);
+      assert(arraysEqual(res, [1, 0, 0, 1]), 'tx event on handle 1 has not been set yet');
       done();
     });
   });
