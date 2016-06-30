@@ -10,7 +10,7 @@ const MESH_INTERVAL_MIN_MS = 100;
 const MESH_ADVERTISING_CHANNEL = 38;
 
 const MESH_ACCESS_ADDR_ARRAY = [0xD6, 0xBE, 0x89, 0x8E];
-const MESH_INTERVAL_MIN_MS_ARRAY = [0x64, 0, 0, 0];
+const MESH_INTERVAL_MIN_MS_ARRAY = [100, 0, 0, 0];
 const MESH_ADVERTISING_CHANNEL_ARRAY = [38];
 
 const FIRST_COM_PORT = 'COM45';
@@ -270,6 +270,15 @@ describe('serial interface command unit tests -- tests are not self-contained', 
         console.log(err);
         assert(false, 'failed to disable handle 1');
       }
+      done();
+    });
+  });
+
+  it('prompts slave to get the persistence of handle 1', done => {
+    bleMeshSerialInterfaceAPI.flagGet(1, (err, res) => {
+      checkError(err);
+      console.log('here', res);
+      assert(arraysEqual(res, [1, 0, 0, 0]), 'persistence of handle 1 has not been set yet');
       done();
     });
   });

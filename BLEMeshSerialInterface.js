@@ -12,6 +12,8 @@ const commandOpCodes = { // TODO: Still additional codes to add and implement.
   'VALUE_SET': 0x71,
   'VALUE_ENABLE': 0x72,
   'VALUE_DISABLE': 0x73,
+  'FLAG_SET': 0x76,
+  'FLAG_GET': 0x77,
   'DFU_DATA': 0x78,
   'VALUE_GET': 0x7a,
   'BUILD_VERSION_GET': 0x7b,
@@ -147,13 +149,12 @@ class BLEMeshSerialInterface extends EventEmitter {
             this._callback(null, response.slice(4));
             break;
           default:
-            this._callback(new Error(`received a status code in the command response indicating an error ${statusCode}`), response);
             console.log('status code error: ', response);
+            this._callback(new Error(`received a status code in the command response indicating an error ${statusCode}`), response);
         }
         break;
       default:
         this._callback(new Error(`unknown command response opCode ${responseOpCode}`), response);
-        console.log('unknown command response opCode');
     }
   }
 
@@ -319,6 +320,38 @@ class BLEMeshSerialInterface extends EventEmitter {
 
   radioReset(callback) {
     const command = new Buffer([1, commandOpCodes.RADIO_RESET]);
+
+    this._callback = callback;
+    this.writeSerialPort(command);
+  }
+
+  flagSet(handle, callback) {
+    const buf = [5, commandOpCodes.FLAG_SET];
+    const command = new Buffer(buf.concat([this._byte(handle, 0), this._byte(handle, 1), 0, 1]));
+
+    this._callback = callback;
+    this.writeSerialPort(command);
+  }
+
+  flagGet(handle, callback) {
+    const buf = [4, commandOpCodes.FLAG_GET];
+    const command = new Buffer(buf.concat([this._byte(handle, 0), this._byte(handle, 1), 0]));
+
+    this._callback = callback;
+    this.writeSerialPort(command);
+  }
+
+  txEventSet(handle, callback) {
+    const buf = [5, commandOpCodes.FLAG_SET];
+    const command = new Buffer(buf.concat([this._byte(handle, 0), this._byte(handle, 1), 1, 1]));
+
+    this._callback = callback;
+    this.writeSerialPort(command);
+  }
+
+  txEventGet(handle, callback) {
+    const buf = [4, commandOpCodes.FLAG_GET];
+    const command = new Buffer(buf.concat([this._byte(handle, 0), this._byte(handle, 1), 1]));
 
     this._callback = callback;
     this.writeSerialPort(command);
