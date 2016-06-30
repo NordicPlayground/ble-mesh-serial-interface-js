@@ -3,7 +3,7 @@
 const expect = require('chai').expect;
 const assert = require('chai').assert;
 
-const BLEMeshSerialInterface = require('../index');
+const BLEMeshSerialInterface = require('../BLEMeshSerialInterface');
 
 const MESH_ACCESS_ADDR = 0x8E89BED6;
 const MESH_INTERVAL_MIN_MS = 100;
@@ -350,91 +350,50 @@ describe('serial interface command unit tests -- tests are not self-contained', 
       }
     });
   });
+});
 
-  /*it('tests a realistic use case', done => {
+describe('self contained serial interface unit tests', () => {
+  let bleMeshSerialInterfaceAPI;
+
+  beforeEach(function(done) {
+    bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
+
+      bleMeshSerialInterfaceAPI.once('deviceStarted', data => {
+        console.log('device started: ', data);
+        done();
+      });
+
+      bleMeshSerialInterfaceAPI.radioReset(err => {
+        checkError(err)
+      });
+    });
+  });
+
+  afterEach(function(done) {
     bleMeshSerialInterfaceAPI.closeSerialPort(err => {
-      if (err) {
-        console.log(err);
-      }
-
+      checkError(err);
       bleMeshSerialInterfaceAPI = null;
-
-      const ble = new BLEMeshSerialInterface(OPTIONAL_SECOND_COM_PORT, err => {
-        ble.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL, err => {
-          if (err) {
-            console.log(err);
-            expect(false).to.equal(true);
-          }
-
-          ble.valueSet(0, new Buffer([0x00, 0x01, 0x02]), err => {
-            if (err) {
-              console.log(err);
-              expect(false).to.equal(true)
-            }
-
-            const expected_result = '0000000102';
-
-            ble.valueGet(0,(err, res) => {
-              if (err) {
-                console.log(err);
-              }
-
-              expect(res.toString('hex')).to.equal(expected_result);
-
-              bleMeshSerialInterfaceAPI.once('deviceStarted', () => {
-                bleMeshSerialInterfaceAPI.closeSerialPort(err => {
-                  console.log(err)
-                  expect(false).to.equal(true);
-                })
-                done();
-              });
-              bleMeshSerialInterfaceAPI.radioReset(err => {
-                if (err) {
-                  console.log(err);
-                  expect(false).to.equal(true);
-                }
-              });
-            });
-          });
-        });
-      });
+      done();
     });
-  });*/
+  });
 
-  /*it('tests switching ports', done => {
-    bleMeshSerialInterfaceAPI.closeSerialPort(err => {
-      if (err) {
-        console.log(err);
-      }
+  it('prompts slave to echo one byte back to host', done => {
+    const buf = [0x01];
 
-      const ble = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
-        if (err) {
-          console.log(err);
-        }
-        const buf = new Buffer([0x01]);
-
-        ble.echo(buf, (err, res) => {
-          if (err) {
-            console.log(err);
-          }
-          expect(res.toString('hex')).to.equal(buf.toString('hex'));
-          ble.closeSerialPort(() => {
-            ble.openSerialPort(OPTIONAL_SECOND_COM_PORT, err => {
-              if (err) {
-                console.log(err);
-              }
-              ble.echo(buf, (err, res) => {
-                if (err) {
-                  console.log(err);
-                }
-                expect(res.toString('hex')).to.equal(buf.toString('hex'));
-                done();
-              });
-            });
-          });
-        });
-      });
+    bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
+      checkError(err);
+      assert(arraysEqual(buf, res), 'echoed data is not equal to what was sent');
+      done();
     });
-  });*/
+  });
 
+  it('prompts slave to echo two bytes back to host', done => {
+    const buf = [0x01, 0x02];
+
+    bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
+      checkError(err);
+      assert(arraysEqual(buf, res), 'echoed data is not equal to what was sent');
+      done();
+    });
+  });
 });
