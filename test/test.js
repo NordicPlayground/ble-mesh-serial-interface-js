@@ -13,91 +13,142 @@ const MESH_INTERVAL_MIN_MS_STRING = '64000000';
 const MESH_CHANNEL_STRING = '26';
 
 const FIRST_COM_PORT = 'COM45';
-//const OPTIONAL_SECOND_COM_PORT = 'COM45';
+const SECOND_COM_PORT = 'COM46';
 
-describe('#serial interface unit tests', () => {
-  let index = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
-    if (err) {
+function check_err(err) {
+  if (err) {
       console.log(err);
-    }
+  }
+}
+
+describe('helper function tests', function() {
+
+  let bleMeshSerialInterfaceAPI;
+
+  before(function(done) {
+    bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
+
+      bleMeshSerialInterfaceAPI.once('deviceStarted', data => {
+        console.log('device started: ', data);
+        done();
+      });
+
+      bleMeshSerialInterfaceAPI.radioReset(err => {
+        check_err(err)
+      });
+    });
   });
 
-  it('tests _buildResponse() on single command response', () => {
+  after(function(done) {
+    bleMeshSerialInterfaceAPI.closeSerialPort(err => {
+      check_err(err);
+      bleMeshSerialInterfaceAPI = null;
+      done();
+    });
+  });
+
+  it('tests bleMeshSerialInterfaceAPI.buildResponse() on single command response', () => {
     const resp = new Buffer([0x03, 0x84, 0x74, 0x00]);
 
-    index._buildResponse(resp);
-    expect(index._responseQueue.shift().toString('hex')).to.equal(resp.toString('hex'));
-    expect(index._tempBuildResponse).to.equal(null);
+    bleMeshSerialInterfaceAPI.buildResponse(resp);
+    expect(bleMeshSerialInterfaceAPI._responseQueue.shift().toString('hex')).to.equal(resp.toString('hex'));
+    expect(bleMeshSerialInterfaceAPI._tempBuildResponse).to.equal(null);
   });
 
-  it('tests _buildResponse() on single event response', () => {
+  it('tests bleMeshSerialInterfaceAPI.buildResponse() on single event response', () => {
     const resp = new Buffer([0x03, 0xb3, 0x00, 0x00]);
 
-    index._buildResponse(resp);
-    expect(index._responseQueue.shift().toString('hex')).to.equal(resp.toString('hex'));
-    expect(index._tempBuildResponse).to.equal(null);
+    bleMeshSerialInterfaceAPI.buildResponse(resp);
+    expect(bleMeshSerialInterfaceAPI._responseQueue.shift().toString('hex')).to.equal(resp.toString('hex'));
+    expect(bleMeshSerialInterfaceAPI._tempBuildResponse).to.equal(null);
   });
 
-  it('tests _buildResponse() on two event responses', () => {
+  it('tests bleMeshSerialInterfaceAPI.buildResponse() on two event responses', () => {
     const resp = new Buffer([0x04, 0xb3, 0x00, 0x00, 0x00, 0x05, 0xb4, 0x00, 0x00, 0x00, 0x00]);
 
-    index._buildResponse(resp);
-    expect(index._responseQueue.shift().toString('hex')).to.equal(resp.slice(0, 5).toString('hex'));
-    expect(index._responseQueue.shift().toString('hex')).to.equal(resp.slice(5).toString('hex'));
-    expect(index._tempBuildResponse).to.equal(null);
+    bleMeshSerialInterfaceAPI.buildResponse(resp);
+    expect(bleMeshSerialInterfaceAPI._responseQueue.shift().toString('hex')).to.equal(resp.slice(0, 5).toString('hex'));
+    expect(bleMeshSerialInterfaceAPI._responseQueue.shift().toString('hex')).to.equal(resp.slice(5).toString('hex'));
+    expect(bleMeshSerialInterfaceAPI._tempBuildResponse).to.equal(null);
   });
 
-  it('tests _buildResponse() on a broken up response', () => {
+  it('tests bleMeshSerialInterfaceAPI.buildResponse() on a response that comes in two data events', () => {
     const resp1 = new Buffer([0x06, 0xb3, 0x00, 0x00]);
     const resp2 = new Buffer([0x00, 0x00, 0x00]);
 
     const expectedResp = Buffer.concat([resp1, resp2]);
 
-    index._buildResponse(resp1);
-    index._buildResponse(resp2);
-    expect(index._responseQueue.shift().toString('hex')).to.equal(expectedResp.toString('hex'));
-    expect(index._tempBuildResponse).to.equal(null);
+    bleMeshSerialInterfaceAPI.buildResponse(resp1);
+    bleMeshSerialInterfaceAPI.buildResponse(resp2);
+    expect(bleMeshSerialInterfaceAPI._responseQueue.shift().toString('hex')).to.equal(expectedResp.toString('hex'));
+    expect(bleMeshSerialInterfaceAPI._tempBuildResponse).to.equal(null);
   });
 
-  it('tests _buildResponse() on a broken up response followed by two resopnse', () => {
+  it('tests bleMeshSerialInterfaceAPI.buildResponse() on a broken up response followed by two responses', () => {
     const resp1 = new Buffer([0x06, 0xb3, 0x00, 0x00]);
     const resp2 = new Buffer([0x00, 0x00, 0x00, 0x04, 0xb4, 0x00, 0x00, 0x00]);
 
     const expectedResp = Buffer.concat([resp1, resp2]);
 
-    index._buildResponse(resp1);
-    index._buildResponse(resp2);
-    expect(index._responseQueue.shift().toString('hex')).to.equal(expectedResp.slice(0, 7).toString('hex'));
-    expect(index._responseQueue.shift().toString('hex')).to.equal(expectedResp.slice(7).toString('hex'));
-    expect(index._tempBuildResponse).to.equal(null);
+    bleMeshSerialInterfaceAPI.buildResponse(resp1);
+    bleMeshSerialInterfaceAPI.buildResponse(resp2);
+    expect(bleMeshSerialInterfaceAPI._responseQueue.shift().toString('hex')).to.equal(expectedResp.slice(0, 7).toString('hex'));
+    expect(bleMeshSerialInterfaceAPI._responseQueue.shift().toString('hex')).to.equal(expectedResp.slice(7).toString('hex'));
+    expect(bleMeshSerialInterfaceAPI._tempBuildResponse).to.equal(null);
   });
 
-  it('tests _isCommandResponse()', () => {
+  it('tests bleMeshSerialInterfaceAPI.isCommandResponse()', () => {
     const resp = new Buffer([0x01, 0x82]);
 
-    let res = index._isCommandResponse(resp);
+    let res = bleMeshSerialInterfaceAPI.isCommandResponse(resp);
     expect(res).to.equal(true);
 
     const resp2 = new Buffer([0x01, 0x84]);
 
-    res = index._isCommandResponse(resp2);
+    res = bleMeshSerialInterfaceAPI.isCommandResponse(resp2);
     expect(res).to.equal(true);
 
     const resp3 = new Buffer([0x0]);
 
-    res = index._isCommandResponse(resp3);
+    res = bleMeshSerialInterfaceAPI.isCommandResponse(resp3);
     expect(res).to.equal(true);
 
     const resp4 = new Buffer([0x1, 0x81]);
 
-    res = index._isCommandResponse(resp4);
+    res = bleMeshSerialInterfaceAPI.isCommandResponse(resp4);
     expect(res).to.equal(false);
+  });
+});
+
+describe('serial interface command unit tests -- tests are not self-contained', () => {
+  let bleMeshSerialInterfaceAPI;
+
+  before(function(done) {
+    bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
+
+      bleMeshSerialInterfaceAPI.once('deviceStarted', data => {
+        console.log('device started: ', data);
+        done();
+      });
+
+      bleMeshSerialInterfaceAPI.radioReset(err => {
+        check_err(err)
+      });
+    });
+  });
+
+  after(function(done) {
+    bleMeshSerialInterfaceAPI.closeSerialPort(err => {
+      check_err(err);
+      bleMeshSerialInterfaceAPI = null;
+      done();
+    });
   });
 
   it('prompts slave to echo one byte back to host', done => {
     const buf = new Buffer([0x01]);
 
-    index.echo(buf, (err, res) => {
+    bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
       if (err) {
         console.log(err);
       }
@@ -109,7 +160,7 @@ describe('#serial interface unit tests', () => {
   it('prompts slave to echo two bytes back to host', done => {
     const buf = new Buffer([0x01, 0x02]);
 
-    index.echo(buf, (err, res) => {
+    bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
       if (err) {
         console.log(err);
       }
@@ -121,7 +172,7 @@ describe('#serial interface unit tests', () => {
   it('prompts slave to echo too many bytes back to host', done => {
     const buf = new Buffer(new Array(30).fill(0xff));
 
-    index.echo(buf, (err, res) => {
+    bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
     if (err) {
       console.log(err);
     }
@@ -133,7 +184,7 @@ describe('#serial interface unit tests', () => {
   it('prompts the slave to return its build version', done => {
     const expected_result = '000805';
 
-    index.buildVersionGet((err, res) => {
+    bleMeshSerialInterfaceAPI.buildVersionGet((err, res) => {
       if (err) {
         console.log(err);
       }
@@ -143,7 +194,7 @@ describe('#serial interface unit tests', () => {
   });
 
   it('prompts the slave to init the mesh', done => {
-    index.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL, err => {
+    bleMeshSerialInterfaceAPI.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL, err => {
       if (err) {
         console.log(err);
         expect(false).to.equal(true);
@@ -153,7 +204,7 @@ describe('#serial interface unit tests', () => {
   });
 
   it('prompts the slave to init the mesh, already inti so should fail', done => {
-    index.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL, err => {
+    bleMeshSerialInterfaceAPI.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL, err => {
       if (err) {
         console.log(err);
         done();
@@ -163,7 +214,7 @@ describe('#serial interface unit tests', () => {
   });
 
   it('value set', done => {
-    index.valueSet(0, new Buffer([0x00, 0x01, 0x02]), err => {
+    bleMeshSerialInterfaceAPI.valueSet(0, new Buffer([0x00, 0x01, 0x02]), err => {
       if (err) {
         console.log(err);
         expect(false).to.equal(true);
@@ -175,7 +226,7 @@ describe('#serial interface unit tests', () => {
   it('value get', done => {
     const expected_result = '0000000102';
 
-    index.valueGet(0,(err, res) => {
+    bleMeshSerialInterfaceAPI.valueGet(0,(err, res) => {
       if (err) {
         console.log(err);
       }
@@ -185,14 +236,14 @@ describe('#serial interface unit tests', () => {
   });
 
   it('value set with value get directly after', done => {
-    index.valueSet(0, new Buffer([0x00, 0x01, 0x02]), err => {
+    bleMeshSerialInterfaceAPI.valueSet(0, new Buffer([0x00, 0x01, 0x02]), err => {
       if (err) {
         console.log(err);
         expect(false).to.equal(true);
       }
       const expected_result = '0000000102';
 
-      index.valueGet(0,(err, res) => {
+      bleMeshSerialInterfaceAPI.valueGet(0,(err, res) => {
         if (err) {
           console.log(err);
         }
@@ -203,26 +254,26 @@ describe('#serial interface unit tests', () => {
   });
 
   it('value set with value get directly after', done => {
-    index.valueSet(1, new Buffer([0x00, 0x01, 0x02]), err => {
+    bleMeshSerialInterfaceAPI.valueSet(1, new Buffer([0x00, 0x01, 0x02]), err => {
       if (err) {
         console.log(err);
         expect(false).to.equal(true);
       }
       const expected_result = '0100000102';
 
-      index.valueGet(1,(err, res) => {
+      bleMeshSerialInterfaceAPI.valueGet(1,(err, res) => {
         if (err) {
           console.log(err);
         }
         expect(res.toString('hex')).to.equal(expected_result);
-        index.valueSet(1, new Buffer([0x00, 0x01, 0x03]), err => {
+        bleMeshSerialInterfaceAPI.valueSet(1, new Buffer([0x00, 0x01, 0x03]), err => {
           if (err) {
             console.log(err);
             expect(false).to.equal(true);
           }
           const expected_result = '0100000103';
 
-          index.valueGet(1,(err, res) => {
+          bleMeshSerialInterfaceAPI.valueGet(1,(err, res) => {
             if (err) {
               console.log(err);
             }
@@ -235,7 +286,7 @@ describe('#serial interface unit tests', () => {
   });
 
   it('value enable', done => {
-    index.valueEnable(0, err => {
+    bleMeshSerialInterfaceAPI.valueEnable(0, err => {
       if (err) {
         console.log(err);
         expect(false).to.equal(true);
@@ -245,7 +296,7 @@ describe('#serial interface unit tests', () => {
   });
 
   it('value disable', done => {
-    index.valueDisable(0, err => {
+    bleMeshSerialInterfaceAPI.valueDisable(0, err => {
       if (err) {
         console.log(err);
         expect(false).to.equal(true);
@@ -257,7 +308,7 @@ describe('#serial interface unit tests', () => {
   it('prompts the slave to return its access address', done => {
     const expected_result = MESH_ACCESS_ADDR_STRING; // TODO: Figure out what is going on. Little endian?.
 
-    index.accessAddrGet((err, res) => {
+    bleMeshSerialInterfaceAPI.accessAddrGet((err, res) => {
       if (err) {
         console.log(err);
       }
@@ -269,7 +320,7 @@ describe('#serial interface unit tests', () => {
   it('prompts the slave to return its advertising channel', done => {
     const expected_result = MESH_CHANNEL_STRING;
 
-    index.channelGet((err, res) => {
+    bleMeshSerialInterfaceAPI.channelGet((err, res) => {
       if (err) {
         console.log(err);
       }
@@ -281,7 +332,7 @@ describe('#serial interface unit tests', () => {
   it('prompts the slave to return its min interval', done => {
     const expected_result = MESH_INTERVAL_MIN_MS_STRING;
 
-    index.intervalMinGet((err, res) => {
+    bleMeshSerialInterfaceAPI.intervalMinGet((err, res) => {
       if (err) {
         console.log(err);
       }
@@ -291,7 +342,7 @@ describe('#serial interface unit tests', () => {
   });
 
   it('prompts the slave to stop the mesh', done => {
-    index.stop(err => {
+    bleMeshSerialInterfaceAPI.stop(err => {
       if (err) {
         console.log(err);
         expect(false).to.equal(true);
@@ -301,7 +352,7 @@ describe('#serial interface unit tests', () => {
   });
 
   it('prompts the slave to start the mesh', done => {
-    index.start(err => {
+    bleMeshSerialInterfaceAPI.start(err => {
       if (err) {
         console.log(err);
         expect(false).to.equal(true);
@@ -311,10 +362,10 @@ describe('#serial interface unit tests', () => {
   });
 
   it('prompts the slave to perform a radio reset', done => {
-    index.once('deviceStarted', () => {
+    bleMeshSerialInterfaceAPI.once('deviceStarted', () => {
       done();
     });
-    index.radioReset(err => {
+    bleMeshSerialInterfaceAPI.radioReset(err => {
       if (err) {
         console.log(err);
         expect(false).to.equal(true);
@@ -325,7 +376,7 @@ describe('#serial interface unit tests', () => {
   it('prompts slave to echo two bytes back to host', done => {
     const buf = new Buffer([0x01, 0x02]);
 
-    index.echo(buf, (err, res) => {
+    bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
       if (err) {
         console.log(err);
       }
@@ -338,7 +389,7 @@ describe('#serial interface unit tests', () => {
     const buf = new Buffer(new Array(23).fill(0xff));
     const handle = new Buffer([0xFF, 0xFE]);
 
-    index.dfuData(buf, (err, res) => {
+    bleMeshSerialInterfaceAPI.dfuData(buf, (err, res) => {
       if (err) {
         console.log(err);
       }
@@ -348,12 +399,12 @@ describe('#serial interface unit tests', () => {
   });
 
   /*it('tests a realistic use case', done => {
-    index.closeSerialPort(err => {
+    bleMeshSerialInterfaceAPI.closeSerialPort(err => {
       if (err) {
         console.log(err);
       }
 
-      index = null;
+      bleMeshSerialInterfaceAPI = null;
 
       const ble = new BLEMeshSerialInterface(OPTIONAL_SECOND_COM_PORT, err => {
         ble.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL, err => {
@@ -365,7 +416,7 @@ describe('#serial interface unit tests', () => {
           ble.valueSet(0, new Buffer([0x00, 0x01, 0x02]), err => {
             if (err) {
               console.log(err);
-              expect(false).to.equal(true);
+              expect(false).to.equal(true)
             }
 
             const expected_result = '0000000102';
@@ -377,14 +428,14 @@ describe('#serial interface unit tests', () => {
 
               expect(res.toString('hex')).to.equal(expected_result);
 
-              index.once('deviceStarted', () => {
-                index.closeSerialPort(err => {
+              bleMeshSerialInterfaceAPI.once('deviceStarted', () => {
+                bleMeshSerialInterfaceAPI.closeSerialPort(err => {
                   console.log(err)
                   expect(false).to.equal(true);
                 })
                 done();
               });
-              index.radioReset(err => {
+              bleMeshSerialInterfaceAPI.radioReset(err => {
                 if (err) {
                   console.log(err);
                   expect(false).to.equal(true);
@@ -398,7 +449,7 @@ describe('#serial interface unit tests', () => {
   });*/
 
   /*it('tests switching ports', done => {
-    index.closeSerialPort(err => {
+    bleMeshSerialInterfaceAPI.closeSerialPort(err => {
       if (err) {
         console.log(err);
       }

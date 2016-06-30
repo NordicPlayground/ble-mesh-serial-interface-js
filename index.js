@@ -60,11 +60,11 @@ class BLEMeshSerialInterface extends EventEmitter {
     this._tempBuildResponse;
 
     this._port.on('data', data => {
-      this._buildResponse(data);
+      this.buildResponse(data);
 
       while (this._responseQueue.length !== 0) {
         const response = this._responseQueue.shift();
-        if (this._isCommandResponse(response)) {
+        if (this.isCommandResponse(response)) {
           this._handleCommandResponse(response);
         } else {
           this._handleEventResponse(response);
@@ -83,7 +83,7 @@ class BLEMeshSerialInterface extends EventEmitter {
     });
   }
 
-  _buildResponse(data) {
+  buildResponse(data) {
     let length = data[0] + 1; // If we are in the middle of building a response this will be incorrect, and re-assigned below.
 
     if (!this._tempBuildResponse) {
@@ -107,7 +107,7 @@ class BLEMeshSerialInterface extends EventEmitter {
     }
 
     if (remainingLength < data.length) {
-      this._buildResponse(data.slice(remainingLength));
+      this.buildResponse(data.slice(remainingLength));
     }
   }
 
@@ -172,7 +172,7 @@ class BLEMeshSerialInterface extends EventEmitter {
     }
   }
 
-  _isCommandResponse(response) {
+  isCommandResponse(response) {
     const opCode = response[1];
     if (opCode === responseOpCodes.ECHO_RSP | opCode === responseOpCodes.CMD_RSP | response[0] === 0x00) {
       return true;
