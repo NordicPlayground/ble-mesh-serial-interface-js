@@ -52,6 +52,16 @@ const statusCodes = {
   'RESERVED_END': 0xFF
 };
 
+const reverseLookup = obj => val => {
+    for (let k of Object.keys(obj))
+        if (obj[k] === val)
+            return k;
+}
+
+const commandOpCodeToString = reverseLookup(commandOpCodes);
+const statusCodeToString = reverseLookup(statusCodes);
+const responseOpCodeToString = reverseLookup(responseOpCodes);
+
 
 class BLEMeshSerialInterface extends EventEmitter {
   constructor(serialPort, callback, baudRate, rtscts) {
@@ -154,12 +164,14 @@ class BLEMeshSerialInterface extends EventEmitter {
             this._callback(null, response.slice(4));
             break;
           default:
-            console.log('status code error: ', response);
             this._callback(new Error(`received a status code in the command response indicating an error ${statusCode}`), response);
+            const error = statusCodeToString(statusCode);
+            console.log(`status code error: ${error}\tresponse:`, response);
         }
         break;
       default:
         this._callback(new Error(`unknown command response opCode ${responseOpCode}`), response);
+        console.log(`unknown command response opCode (${responseOpCodeToString(responseOpCode)})`);
     }
   }
 
@@ -187,7 +199,9 @@ class BLEMeshSerialInterface extends EventEmitter {
         this.emit('eventDFU', data);
         break;
       default:
-        console.log('unknown event response received from slave device: ', response); // TODO: shouldn't return a buffer here.
+          console.log('unknown event response received from slave device: ', response,
+              responseOpCode, responseOpCodeToString(responseOpCode)
+          ); // TODO: shouldn't return a buffer here.
     }
   }
 
