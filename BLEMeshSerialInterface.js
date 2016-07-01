@@ -3,7 +3,7 @@
 const EventEmitter = require('events');
 const SerialPort = require('serialport');
 
-const commandOpCodes = { // TODO: Still additional codes to add and implement.
+const commandOpCodes = {
   'ECHO': 0x02,
   'RADIO_RESET': 0x0e,
   'INIT': 0x70,
@@ -22,6 +22,10 @@ const commandOpCodes = { // TODO: Still additional codes to add and implement.
   'INTERVAL_MIN_GET': 0x7f
 };
 
+const smartMeshCommandOpCodes = {
+  'GET_VERSION': 0x50
+}
+
 const responseOpCodes = {
   'DEVICE_STARTED': 0x81,
   'ECHO_RSP': 0x82,
@@ -29,7 +33,9 @@ const responseOpCodes = {
   'EVENT_NEW': 0xB3,
   'EVENT_UPDATE': 0xB4,
   'EVENT_CONFLICTING': 0xB5,
-  'EVENT_TX': 0xB6
+  'EVENT_TX': 0xB6,
+  'DFU_FWID': 0xFE,
+  'DFU_READY': 0xFD
 };
 
 const statusCodes = {
@@ -62,6 +68,7 @@ class BLEMeshSerialInterface extends EventEmitter {
     this._tempBuildResponse;
 
     this._port.on('data', data => {
+      console.log('data: ', data);
       this.buildResponse(data);
 
       while (this._responseQueue.length !== 0) {
@@ -177,6 +184,9 @@ class BLEMeshSerialInterface extends EventEmitter {
         break;
       case responseOpCodes.EVENT_TX:
         this.emit('eventTX', data);
+        break;
+      case responseOpCodes.DFU_DATA:
+        this.emit('eventDFU', data);
         break;
       default:
         console.log('unknown event response received from slave device: ', response); // TODO: shouldn't return a buffer here.
@@ -360,6 +370,15 @@ class BLEMeshSerialInterface extends EventEmitter {
   dfuData(data, callback) {
     const buf = [data.length + 1, commandOpCodes.DFU_DATA];
     const command = new Buffer(buf.concat(data));
+
+    this._callback = callback;
+    this.writeSerialPort(command);
+  }
+
+/* Smart Mesh Serial Interface */
+
+getVersion(callback) {
+    const command = new Buffer([1, smartMeshCommandOpCodes.GET_VERSION]);
 
     this._callback = callback;
     this.writeSerialPort(command);

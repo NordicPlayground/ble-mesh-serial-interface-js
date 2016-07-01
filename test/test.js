@@ -13,7 +13,7 @@ const MESH_ACCESS_ADDR_ARRAY = [0xD6, 0xBE, 0x89, 0x8E];
 const MESH_INTERVAL_MIN_MS_ARRAY = [100, 0, 0, 0];
 const MESH_ADVERTISING_CHANNEL_ARRAY = [38];
 
-const FIRST_COM_PORT = 'COM45';
+const FIRST_COM_PORT = 'COM47';
 const SECOND_COM_PORT = 'COM46';
 
 function checkError(err) {
@@ -33,6 +33,7 @@ function arraysEqual(arr1, arr2) {
     return true;
 }
 
+/*
 describe('helper function tests', function() {
 
   let bleMeshSerialInterfaceAPI;
@@ -132,7 +133,7 @@ describe('helper function tests', function() {
   });
 });
 
-describe('serial interface command unit tests -- tests are not self-contained', () => {
+describe('nRF Open Mesh serial interface command unit tests -- tests are not self-contained', () => {
   let bleMeshSerialInterfaceAPI;
 
   before(function(done) {
@@ -207,6 +208,42 @@ describe('serial interface command unit tests -- tests are not self-contained', 
     });
   });
 
+  it('prompts slave to set the persistence of handle 1', done => {
+    bleMeshSerialInterfaceAPI.flagSet(1, err => {
+      if (err) {
+        console.log(err);
+        assert(false, 'failed to set the persistence flag of handle 1');
+      }
+      done();
+    });
+  });
+
+  it('prompts slave to get the persistence of handle 1', done => {
+    bleMeshSerialInterfaceAPI.flagGet(1, (err, res) => {
+      checkError(err);
+      assert(arraysEqual(res, [1, 0, 0, 1]), 'persistence of handle 1 has not been set yet');
+      done();
+    });
+  });
+
+  it('prompts slave to set the tx event on handle 1', done => {
+    bleMeshSerialInterfaceAPI.txEventSet(1, err => {
+      if (err) {
+        console.log(err);
+        assert(false, 'failed to set the tx event on handle 1');
+      }
+      done();
+    });
+  });
+
+  it('prompts slave to get the tx event of handle 1', done => {
+    bleMeshSerialInterfaceAPI.txEventGet(1, (err, res) => {
+      checkError(err);
+      assert(arraysEqual(res, [1, 0, 0, 1]), 'tx event on handle 1 has not been set yet');
+      done();
+    });
+  });
+
   it('prompts slave to initialize the mesh, already initialize so should fail with status code error', done => {
     bleMeshSerialInterfaceAPI.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_ADVERTISING_CHANNEL, err => {
       if (err) {
@@ -270,42 +307,6 @@ describe('serial interface command unit tests -- tests are not self-contained', 
         console.log(err);
         assert(false, 'failed to disable handle 1');
       }
-      done();
-    });
-  });
-
-  it('prompts slave to set the persistence of handle 1', done => {
-    bleMeshSerialInterfaceAPI.flagSet(1, (err, res) => {
-      if (err) {
-        console.log(err);
-        assert(false, 'failed to set the persistence flag of handle 1');
-      }
-      done();
-    });
-  });
-
-  it('prompts slave to get the persistence of handle 1', done => {
-    bleMeshSerialInterfaceAPI.flagGet(1, (err, res) => {
-      checkError(err);
-      assert(arraysEqual(res, [1, 0, 0, 1]), 'persistence of handle 1 has not been set yet');
-      done();
-    });
-  });
-
-  it('prompts slave to set the tx event on handle 1', done => {
-    bleMeshSerialInterfaceAPI.txEventSet(1, (err, res) => {
-      if (err) {
-        console.log(err);
-        assert(false, 'failed to set the tx event on handle 1');
-      }
-      done();
-    });
-  });
-
-  it('prompts slave to get the tx event of handle 1', done => {
-    bleMeshSerialInterfaceAPI.txEventGet(1, (err, res) => {
-      checkError(err);
-      assert(arraysEqual(res, [1, 0, 0, 1]), 'tx event on handle 1 has not been set yet');
       done();
     });
   });
@@ -387,8 +388,10 @@ describe('serial interface command unit tests -- tests are not self-contained', 
     });
   });
 });
+*/
 
-describe('self contained serial interface unit tests', () => {
+/*
+describe('nRF Open Mesh self contained serial interface unit tests', () => {
   let bleMeshSerialInterfaceAPI;
 
   beforeEach(function(done) {
@@ -429,6 +432,91 @@ describe('self contained serial interface unit tests', () => {
     bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
       checkError(err);
       assert(arraysEqual(buf, res), 'echoed data is not equal to what was sent');
+      done();
+    });
+  });
+
+  it('prompts slave to set the persistence flag of handle 1', done => {
+    bleMeshSerialInterfaceAPI.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_ADVERTISING_CHANNEL, err => {
+      if (err) {
+        console.log(err);
+        assert(false, 'error initializing the device');
+      }
+      bleMeshSerialInterfaceAPI.valueSet(1, [0x00, 0x01, 0x02], err => {
+        if (err) {
+          console.log(err);
+          assert(false, 'error setting the value of a handle on the mesh');
+        }
+        bleMeshSerialInterfaceAPI.flagSet(1, err => {
+          if (err) {
+            console.log(err);
+            assert(false, 'failed to set the persistence flag of handle 1');
+          }
+          done();
+        });
+      });
+    });
+  });
+});
+*/
+
+describe('BLE Smart Mesh serial interface command unit tests -- tests are not self-contained', () => {
+  let bleMeshSerialInterfaceAPI;
+
+  before(function(done) {
+    bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
+      checkError(err);
+      bleMeshSerialInterfaceAPI.on('deviceStarted', data => {
+        console.log('device started: ', data);
+      });
+      done();
+    });
+  });
+
+  after(function(done) {
+    bleMeshSerialInterfaceAPI.closeSerialPort(err => {
+      checkError(err);
+      bleMeshSerialInterfaceAPI = null;
+      done();
+    });
+  });
+
+  it('prompts slave to echo one byte back to host', done => {
+    const buf = [0x01];
+
+    bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
+      checkError(err);
+      assert(arraysEqual(buf, res), 'echoed data is not equal to what was sent');
+      done();
+    });
+  });
+
+  it('prompts slave to echo two bytes back to host', done => {
+    const buf = [0x01, 0x02];
+
+    bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
+      checkError(err);
+      assert(arraysEqual(buf, res), 'echoed data is not equal to what was sent');
+      done();
+    });
+  });
+
+  it('prompts slave to echo too many bytes back to host', done => {
+    const buf = new Array(30).fill(0xff);
+
+    bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
+      checkError(err);
+      assert(arraysEqual(buf, res), 'echoed data is not equal to what was sent');
+      done();
+    });
+  });
+
+  it('prompts slave to return its build version', done => {
+    const buf = [0x0, 0x1];
+
+    bleMeshSerialInterfaceAPI.getVersion((err, res) => {
+      checkError(err);
+      assert(arraysEqual(buf, res), 'unexpected build version returned');
       done();
     });
   });

@@ -6,7 +6,7 @@ const MESH_ACCESS_ADDR = 0x8E89BED6;
 const MESH_INTERVAL_MIN_MS = 100;
 const MESH_CHANNEL = 38;
 
-const COM_PORT = 'COM45';
+const COM_PORT = 'COM47';
 
 function checkError(err) {
   if (err) {
