@@ -164,24 +164,25 @@ class BLEMeshSerialInterface extends EventEmitter {
   }
 
   _handleEventResponse(response) {
-    const responseOpCode = response[1];
-    const data = this.bufferToArray(response.slice(2));
+    console.log(response)
+    const data = this.bufferToArray(response);
+    const responseOpCode = data[1];
 
     switch(responseOpCode) {
       case responseOpCodes.DEVICE_STARTED:
-        this.emit('deviceStarted', data);
+        this.emit('deviceStarted', data.slice(2));
         break;
       case responseOpCodes.EVENT_NEW:
-        this.emit('eventNew', data);
+        this.emit('eventNew', data.slice(2));
         break;
       case responseOpCodes.EVENT_UPDATE:
-        this.emit('eventUpdate', data);
+        this.emit('eventUpdate', data.slice(2));
         break;
       case responseOpCodes.EVENT_CONFLICTING:
-        this.emit('eventConflicting', data);
+        this.emit('eventConflicting', data.slice(2));
         break;
       case responseOpCodes.EVENT_TX:
-        this.emit('eventTX', data);
+        this.emit('eventTX', data.slice(2));
         break;
       case responseOpCodes.EVENT_DFU:
         this.emit('eventDFU', data);

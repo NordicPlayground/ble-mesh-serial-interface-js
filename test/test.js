@@ -432,41 +432,6 @@ describe('nRF Open Mesh self contained serial interface unit tests', () => {
   });
 });
 
-describe('nRF Open Mesh self contained DFU serial interface unit tests', () => {
-  let bleMeshSerialInterfaceAPI;
-
-  beforeEach(function(done) {
-    bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
-
-      bleMeshSerialInterfaceAPI.once('deviceStarted', data => {
-        done();
-      });
-
-      bleMeshSerialInterfaceAPI.radioReset(err => {
-        checkError(err)
-      });
-    });
-  });
-
-  afterEach(function(done) {
-    bleMeshSerialInterfaceAPI.closeSerialPort(err => {
-      checkError(err);
-      bleMeshSerialInterfaceAPI = null;
-      done();
-    });
-  });
-
-  it('prompts slave to echo one byte back to host', done => {
-    const buf = [0x01];
-
-    bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
-      checkError(err);
-      assert(arraysEqual(buf, res), 'echoed data is not equal to what was sent');
-      done();
-    });
-  });
-});
-
 /*
 describe('BLE Smart Mesh serial interface command unit tests -- tests are not self-contained', () => {
   let bleMeshSerialInterfaceAPI;
