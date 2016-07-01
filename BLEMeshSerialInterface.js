@@ -34,8 +34,7 @@ const responseOpCodes = {
   'EVENT_UPDATE': 0xB4,
   'EVENT_CONFLICTING': 0xB5,
   'EVENT_TX': 0xB6,
-  'DFU_FWID': 0xFE,
-  'DFU_READY': 0xFD
+  'EVENT_DFU': 0x78
 };
 
 const statusCodes = {
@@ -68,7 +67,6 @@ class BLEMeshSerialInterface extends EventEmitter {
     this._tempBuildResponse;
 
     this._port.on('data', data => {
-      console.log('data: ', data);
       this.buildResponse(data);
 
       while (this._responseQueue.length !== 0) {
@@ -185,7 +183,7 @@ class BLEMeshSerialInterface extends EventEmitter {
       case responseOpCodes.EVENT_TX:
         this.emit('eventTX', data);
         break;
-      case responseOpCodes.DFU_DATA:
+      case responseOpCodes.EVENT_DFU:
         this.emit('eventDFU', data);
         break;
       default:

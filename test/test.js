@@ -13,7 +13,7 @@ const MESH_ACCESS_ADDR_ARRAY = [0xD6, 0xBE, 0x89, 0x8E];
 const MESH_INTERVAL_MIN_MS_ARRAY = [100, 0, 0, 0];
 const MESH_ADVERTISING_CHANNEL_ARRAY = [38];
 
-const FIRST_COM_PORT = 'COM47';
+const FIRST_COM_PORT = 'COM45';
 const SECOND_COM_PORT = 'COM46';
 
 function checkError(err) {
@@ -33,7 +33,6 @@ function arraysEqual(arr1, arr2) {
     return true;
 }
 
-/*
 describe('helper function tests', function() {
 
   let bleMeshSerialInterfaceAPI;
@@ -42,7 +41,6 @@ describe('helper function tests', function() {
     bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
 
       bleMeshSerialInterfaceAPI.once('deviceStarted', data => {
-        console.log('device started: ', data);
         done();
       });
 
@@ -140,7 +138,6 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
     bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
 
       bleMeshSerialInterfaceAPI.once('deviceStarted', data => {
-        console.log('device started: ', data);
         done();
       });
 
@@ -388,9 +385,8 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
     });
   });
 });
-*/
 
-/*
+
 describe('nRF Open Mesh self contained serial interface unit tests', () => {
   let bleMeshSerialInterfaceAPI;
 
@@ -398,7 +394,6 @@ describe('nRF Open Mesh self contained serial interface unit tests', () => {
     bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
 
       bleMeshSerialInterfaceAPI.once('deviceStarted', data => {
-        console.log('device started: ', data);
         done();
       });
 
@@ -435,31 +430,44 @@ describe('nRF Open Mesh self contained serial interface unit tests', () => {
       done();
     });
   });
+});
 
-  it('prompts slave to set the persistence flag of handle 1', done => {
-    bleMeshSerialInterfaceAPI.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_ADVERTISING_CHANNEL, err => {
-      if (err) {
-        console.log(err);
-        assert(false, 'error initializing the device');
-      }
-      bleMeshSerialInterfaceAPI.valueSet(1, [0x00, 0x01, 0x02], err => {
-        if (err) {
-          console.log(err);
-          assert(false, 'error setting the value of a handle on the mesh');
-        }
-        bleMeshSerialInterfaceAPI.flagSet(1, err => {
-          if (err) {
-            console.log(err);
-            assert(false, 'failed to set the persistence flag of handle 1');
-          }
-          done();
-        });
+describe('nRF Open Mesh self contained DFU serial interface unit tests', () => {
+  let bleMeshSerialInterfaceAPI;
+
+  beforeEach(function(done) {
+    bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
+
+      bleMeshSerialInterfaceAPI.once('deviceStarted', data => {
+        done();
+      });
+
+      bleMeshSerialInterfaceAPI.radioReset(err => {
+        checkError(err)
       });
     });
   });
-});
-*/
 
+  afterEach(function(done) {
+    bleMeshSerialInterfaceAPI.closeSerialPort(err => {
+      checkError(err);
+      bleMeshSerialInterfaceAPI = null;
+      done();
+    });
+  });
+
+  it('prompts slave to echo one byte back to host', done => {
+    const buf = [0x01];
+
+    bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
+      checkError(err);
+      assert(arraysEqual(buf, res), 'echoed data is not equal to what was sent');
+      done();
+    });
+  });
+});
+
+/*
 describe('BLE Smart Mesh serial interface command unit tests -- tests are not self-contained', () => {
   let bleMeshSerialInterfaceAPI;
 
@@ -467,7 +475,6 @@ describe('BLE Smart Mesh serial interface command unit tests -- tests are not se
     bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
       checkError(err);
       bleMeshSerialInterfaceAPI.on('deviceStarted', data => {
-        console.log('device started: ', data);
       });
       done();
     });
@@ -521,3 +528,4 @@ describe('BLE Smart Mesh serial interface command unit tests -- tests are not se
     });
   });
 });
+*/
