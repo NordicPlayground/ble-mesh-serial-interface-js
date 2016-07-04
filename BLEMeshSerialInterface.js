@@ -414,7 +414,6 @@ class BLEMeshSerialInterface extends EventEmitter {
     this.writeSerialPort(command);
   }
 
-
   setKeyPair(callback) {
     const command = new Buffer([1, smartMeshCommandOpCodes.SET_KEYPAIR]);
 
@@ -436,6 +435,19 @@ class BLEMeshSerialInterface extends EventEmitter {
     this.writeSerialPort(command);
   }
 
+  provStartScan(callback) {
+    const command = new Buffer([1, smartMeshCommandOpCodes.SERIAL_CMD_PROV_SCAN_START]);
+
+    this._callback = callback;
+    this.writeSerialPort(command);
+  }
+
+  provStopScan(callback) {
+    const command = new Buffer([1, smartMeshCommandOpCodes.SERIAL_CMD_PROV_SCAN_STOP]);
+
+    this._callback = callback;
+    this.writeSerialPort(command);
+  }
 }
 
 module.exports = BLEMeshSerialInterface;

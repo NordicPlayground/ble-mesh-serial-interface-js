@@ -570,8 +570,29 @@ describe('BLE Smart Mesh serial interface command unit tests -- tests are not se
 
     bleMeshSerialInterfaceAPI.provInitContext(contextID, (err, res) => {
       checkError(err);
-      assert(arraysEqual(contextID, res[0]), 'unexpected build version returned');
+      assert(arraysEqual(contextID, res[0]), 'failed to initialize a provisioning context');
       done();
     });
   });
+
+  it('prompts slave to start scanning for un-provisioned devices', done => {
+    bleMeshSerialInterfaceAPI.provStartScan(err => {
+      if (err) {
+        console.log(err);
+        assert(false, 'failed to start scanning');
+      }
+      done();
+    });
+  });
+
+  it('prompts slave to stop scanning for un-provisioned devices', done => {
+    bleMeshSerialInterfaceAPI.provStopScan(err => {
+      if (err) {
+        console.log(err);
+        assert(false, 'failed to stop scanning');
+      }
+      done();
+    });
+  });
+
 });
