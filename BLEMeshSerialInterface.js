@@ -23,10 +23,25 @@ const commandOpCodes = {
 };
 
 const smartMeshCommandOpCodes = {
-  'GET_VERSION': 0x50
+  'GET_VERSION': 0x50,
+
+  /* Provisioning */
+  'SERIAL_CMD_RANGE_PROV_START': 0x60,
+  'SERIAL_CMD_PROV_INIT_CONTEXT': 0x60,
+  'SERIAL_CMD_PROV_SCAN_START': 0x61,
+  'SERIAL_CMD_PROV_SCAN_STOP': 0x62,
+  'SERIAL_CMD_PROV_PROVISION': 0x63,
+  'SERIAL_CMD_PROV_LISTEN': 0x64,
+  'SERIAL_CMD_PROV_ACCEPT': 0x65,
+  'SERIAL_CMD_PROV_OOB_USE': 0x66,
+  'SERIAL_CMD_PROV_AUTH_DATA': 0x67,
+  'SERIAL_CMD_PROV_ECDH_SECRET': 0x68,
+  'SERIAL_CMD_PROV_SET_KEYPAIR': 0x69,
+  'SERIAL_CMD_PROV_SET_CAPABILITIES': 0x6A,
+  'SERIAL_CMD_RANGE_PROV_END': 0x6F
 }
 
-const responseOpCodes = {
+const responseOpCodes = { // TODO: add events for smart mesh.
   'DEVICE_STARTED': 0x81,
   'ECHO_RSP': 0x82,
   'CMD_RSP': 0x84,
@@ -37,7 +52,7 @@ const responseOpCodes = {
   'EVENT_DFU': 0x78
 };
 
-const statusCodes = {
+const statusCodes = { // TODO: add status codes for smart mesh.
   'SUCCESS': 0x0,
   'ERROR_UNKNOWN': 0x80,
   'ERROR_INTERNAL': 0x81,

@@ -13,7 +13,7 @@ const MESH_ACCESS_ADDR_ARRAY = [0xD6, 0xBE, 0x89, 0x8E];
 const MESH_INTERVAL_MIN_MS_ARRAY = [100, 0, 0, 0];
 const MESH_ADVERTISING_CHANNEL_ARRAY = [38];
 
-const FIRST_COM_PORT = 'COM45';
+const FIRST_COM_PORT = 'COM47';
 
 function checkError(err) {
   if (err) {
@@ -387,7 +387,7 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
 });*/
 
 
-describe('nRF Open Mesh self contained serial interface unit tests', () => {
+/*describe('nRF Open Mesh self contained serial interface unit tests', () => {
   let bleMeshSerialInterfaceAPI;
 
   beforeEach(function(done) {
@@ -430,9 +430,9 @@ describe('nRF Open Mesh self contained serial interface unit tests', () => {
       done();
     });
   });
-});
+});*/
 
-describe('nRF Open Mesh self contained DFU serial interface unit tests', () => {
+/*describe('nRF Open Mesh self contained DFU serial interface unit tests', () => {
   let bleMeshSerialInterfaceAPI;
 
   beforeEach(function(done) {
@@ -483,9 +483,8 @@ describe('nRF Open Mesh self contained DFU serial interface unit tests', () => {
       assert(arraysEqual(ackFWID, res), 'incorrect DFU FWID ACK received from device');
     });
   });
-});
+});*/
 
-/*
 describe('BLE Smart Mesh serial interface command unit tests -- tests are not self-contained', () => {
   let bleMeshSerialInterfaceAPI;
 
@@ -537,7 +536,7 @@ describe('BLE Smart Mesh serial interface command unit tests -- tests are not se
   });
 
   it('prompts slave to return its build version', done => {
-    const buf = [0x0, 0x1];
+    const buf = [1, 0];
 
     bleMeshSerialInterfaceAPI.getVersion((err, res) => {
       checkError(err);
@@ -546,4 +545,3 @@ describe('BLE Smart Mesh serial interface command unit tests -- tests are not se
     });
   });
 });
-*/
