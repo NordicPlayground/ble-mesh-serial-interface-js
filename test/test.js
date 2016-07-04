@@ -544,4 +544,34 @@ describe('BLE Smart Mesh serial interface command unit tests -- tests are not se
       done();
     });
   });
+
+  it('prompts slave to set its key-pair for use in encrypting provisioning data', done => {
+    bleMeshSerialInterfaceAPI.setKeyPair(err => {
+      if (err) {
+        console.log(err);
+        assert(false, 'failed to set key-pair');
+      }
+      done();
+    });
+  });
+
+  it('prompts slave to set its provisioning capabilities', done => {
+    bleMeshSerialInterfaceAPI.setCapabilities(err => {
+      if (err) {
+        console.log(err);
+        assert(false, 'failed to set key-pair');
+      }
+      done();
+    });
+  });
+
+  it('prompts slave to initialize a provisioning context', done => {
+    const contextID = 2;
+
+    bleMeshSerialInterfaceAPI.provInitContext(contextID, (err, res) => {
+      checkError(err);
+      assert(arraysEqual(contextID, res[0]), 'unexpected build version returned');
+      done();
+    });
+  });
 });

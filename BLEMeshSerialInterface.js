@@ -24,6 +24,9 @@ const commandOpCodes = {
 
 const smartMeshCommandOpCodes = {
   'GET_VERSION': 0x50,
+  'SET_KEYPAIR': 0x51, // TODO: these may change in release...
+  'SET_CAPABILITIES': 0x52,
+  'SET_UUID': 0x53,
 
   /* Provisioning */
   'SERIAL_CMD_RANGE_PROV_START': 0x60,
@@ -191,7 +194,6 @@ class BLEMeshSerialInterface extends EventEmitter {
   }
 
   _handleEventResponse(response) {
-    console.log(response)
     const data = this.bufferToArray(response);
     const responseOpCode = data[1];
 
@@ -403,14 +405,37 @@ class BLEMeshSerialInterface extends EventEmitter {
     this.writeSerialPort(command);
   }
 
-/* Smart Mesh Serial Interface */
+  /* Smart Mesh Serial Interface */
 
-getVersion(callback) {
+  getVersion(callback) {
     const command = new Buffer([1, smartMeshCommandOpCodes.GET_VERSION]);
 
     this._callback = callback;
     this.writeSerialPort(command);
   }
+
+
+  setKeyPair(callback) {
+    const command = new Buffer([1, smartMeshCommandOpCodes.SET_KEYPAIR]);
+
+    this._callback = callback;
+    this.writeSerialPort(command);
+  }
+
+  setCapabilities(callback) {
+    const command = new Buffer([1, smartMeshCommandOpCodes.SET_CAPABILITIES]);
+
+    this._callback = callback;
+    this.writeSerialPort(command);
+  }
+
+  provInitContext(contextID, callback) {
+    const command = new Buffer([2, smartMeshCommandOpCodes.SERIAL_CMD_PROV_INIT_CONTEXT, contextID]);
+
+    this._callback = callback;
+    this.writeSerialPort(command);
+  }
+
 }
 
 module.exports = BLEMeshSerialInterface;
