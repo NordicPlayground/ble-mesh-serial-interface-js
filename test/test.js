@@ -14,7 +14,6 @@ const MESH_INTERVAL_MIN_MS_ARRAY = [100, 0, 0, 0];
 const MESH_ADVERTISING_CHANNEL_ARRAY = [38];
 
 const FIRST_COM_PORT = 'COM45';
-const SECOND_COM_PORT = 'COM46';
 
 function checkError(err) {
   if (err) {
@@ -33,7 +32,7 @@ function arraysEqual(arr1, arr2) {
     return true;
 }
 
-describe('helper function tests', function() {
+/*describe('helper function tests', function() {
 
   let bleMeshSerialInterfaceAPI;
 
@@ -190,6 +189,7 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
 
     bleMeshSerialInterfaceAPI.buildVersionGet((err, res) => {
       checkError(err);
+      console.log(res);
       assert(arraysEqual(buf, res), 'unexpected build version returned');
       done();
     });
@@ -384,7 +384,7 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
       }
     });
   });
-});
+});*/
 
 
 describe('nRF Open Mesh self contained serial interface unit tests', () => {
@@ -428,6 +428,59 @@ describe('nRF Open Mesh self contained serial interface unit tests', () => {
       checkError(err);
       assert(arraysEqual(buf, res), 'echoed data is not equal to what was sent');
       done();
+    });
+  });
+});
+
+describe('nRF Open Mesh self contained DFU serial interface unit tests', () => {
+  let bleMeshSerialInterfaceAPI;
+
+  beforeEach(function(done) {
+    const fwid = [0x11, 0x78, 0xfe, 0xff, 0x64, 0, 1, 1, 0x59, 0, 0, 0, 1, 0, 1, 0, 0, 0];
+    bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
+
+      bleMeshSerialInterfaceAPI.once('eventDFU', data => {
+        assert(arraysEqual(fwid, data), 'incorrect DFU Beacon (FWID) received from device');
+        done();
+      });
+
+      bleMeshSerialInterfaceAPI.radioReset(err => {
+        checkError(err)
+      });
+    });
+  });
+
+  afterEach(function(done) {
+    bleMeshSerialInterfaceAPI.closeSerialPort(err => {
+      checkError(err);
+      bleMeshSerialInterfaceAPI = null;
+      done();
+    });
+  });
+
+  it('prompts slave to echo one byte back to host', done => {
+    const buf = [0x01];
+
+    bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
+      checkError(err);
+      assert(arraysEqual(buf, res), 'echoed data is not equal to what was sent');
+      done();
+    });
+  });
+
+  it('sends dfu fwid data packet', done => {
+    const fwid = [0xfe, 0xff, 0x64, 0, 1, 1, 0x59, 0, 0, 0, 1, 0, 2, 0, 0, 0];
+    const ackFWID = [0xfe, 0xff];
+    const expectedEvent = [0xfd, 0xff];
+
+    bleMeshSerialInterfaceAPI.once('eventDFU', data => {
+        assert(arraysEqual(expectedEvent, data.slice(2, 4)), 'incorrect DFU event received in protocol');
+        done();
+      });
+
+    bleMeshSerialInterfaceAPI.dfuData(fwid, (err, res) => {
+      checkError(err);
+      assert(arraysEqual(ackFWID, res), 'incorrect DFU FWID ACK received from device');
     });
   });
 });
