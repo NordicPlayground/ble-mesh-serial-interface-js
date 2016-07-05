@@ -13,7 +13,7 @@ const MESH_ACCESS_ADDR_ARRAY = [0xD6, 0xBE, 0x89, 0x8E];
 const MESH_INTERVAL_MIN_MS_ARRAY = [100, 0, 0, 0];
 const MESH_ADVERTISING_CHANNEL_ARRAY = [38];
 
-const FIRST_COM_PORT = 'COM47';
+const FIRST_COM_PORT = 'COM45';
 
 function checkError(err) {
   if (err) {
@@ -32,7 +32,7 @@ function arraysEqual(arr1, arr2) {
     return true;
 }
 
-/*describe('helper function tests', function() {
+describe('helper function tests', function() {
 
   let bleMeshSerialInterfaceAPI;
 
@@ -129,6 +129,7 @@ function arraysEqual(arr1, arr2) {
     expect(res).to.equal(false);
   });
 });
+
 
 describe('nRF Open Mesh serial interface command unit tests -- tests are not self-contained', () => {
   let bleMeshSerialInterfaceAPI;
@@ -384,10 +385,10 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
       }
     });
   });
-});*/
+});
 
 
-/*describe('nRF Open Mesh self contained serial interface unit tests', () => {
+describe('nRF Open Mesh self contained serial interface unit tests', () => {
   let bleMeshSerialInterfaceAPI;
 
   beforeEach(function(done) {
@@ -430,7 +431,7 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
       done();
     });
   });
-});*/
+});
 
 /*describe('nRF Open Mesh self contained DFU serial interface unit tests', () => {
   let bleMeshSerialInterfaceAPI;
@@ -485,7 +486,7 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
   });
 });*/
 
-describe('BLE Smart Mesh serial interface command unit tests -- tests are not self-contained', () => {
+/*describe('BLE Smart Mesh serial interface command unit tests -- tests are not self-contained', () => {
   let bleMeshSerialInterfaceAPI;
 
   before(function(done) {
@@ -596,3 +597,4 @@ describe('BLE Smart Mesh serial interface command unit tests -- tests are not se
   });
 
 });
+*/

@@ -165,7 +165,9 @@ class BLEMeshSerialInterface extends EventEmitter {
     let response = this.bufferToArray(resp);
 
     if (response[0] === 0 & response.length === 1) {
-      this._callback(null, response);
+      if (this._callback) {
+        this._callback(null, response);
+      }
       return;
     }
 
