@@ -184,14 +184,11 @@ class BLEMeshSerialInterface extends EventEmitter {
             this._callback(null, response.slice(4));
             break;
           default:
-            this._callback(new Error(`received a status code in the command response indicating an error ${statusCode}`), response);
-            const error = statusCodeToString(statusCode);
-            console.log(`status code error: ${error}\tresponse:`, response);
+            this._callback(new Error(`received a status code in the command response indicating an error ${statusCodeToString(statusCode)}`), response);
         }
         break;
       default:
-        this._callback(new Error(`unknown command response opCode ${responseOpCode}`), response);
-        console.log(`unknown command response opCode (${responseOpCodeToString(responseOpCode)})`);
+        this._callback(new Error(`unknown command response opCode ${responseOpCodeToString(responseOpCode)}`), response);
     }
   }
 
@@ -265,6 +262,7 @@ class BLEMeshSerialInterface extends EventEmitter {
   writeSerialPort(data) {
     this._port.write(data, err => {
       if (err) {
+        this.emit('error', err);
         console.log('error when writing to serial port: ', err.message);
       }
     });
@@ -401,7 +399,7 @@ class BLEMeshSerialInterface extends EventEmitter {
 
   dfuData(data, callback) {
     const buf = [data.length + 1, commandOpCodes.DFU_DATA];
-    const command = new Buffer(buf.concat(data));
+    const command = new Buffer(buf.concat(data)); // Note: This is the only command where user is responsible for formatting data as little endian.
 
     this._callback = callback;
     this.writeSerialPort(command);
