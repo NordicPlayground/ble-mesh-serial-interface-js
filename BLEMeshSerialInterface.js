@@ -221,7 +221,7 @@ class BLEMeshSerialInterface extends EventEmitter {
       default:
           console.log('unknown event response received from slave device: ', response,
               responseOpCode, responseOpCodeToString(responseOpCode)
-          ); // TODO: shouldn't return a buffer here.
+          );
     }
   }
 
@@ -305,7 +305,7 @@ class BLEMeshSerialInterface extends EventEmitter {
 
   valueSet(handle, data, callback) {
     const buf =[3 + data.length, commandOpCodes.VALUE_SET, this._byte(handle, 0), this._byte(handle, 1)];
-    const command = new Buffer(buf.concat(data));
+    const command = new Buffer(buf.concat(data.reverse())); // Data must be sent in Little Endian format.
 
     this._callback = callback;
     this.writeSerialPort(command);
