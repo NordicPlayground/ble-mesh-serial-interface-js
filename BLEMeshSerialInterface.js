@@ -226,8 +226,10 @@ class BLEMeshSerialInterface extends EventEmitter {
     const responseOpCode = data[1];
 
     switch(responseOpCode) {
-      case responseOpCodes.DEVICE_STARTED: // TODO: return JSON object.
-        this.emit('deviceStarted', data.slice(2));
+      case responseOpCodes.DEVICE_STARTED:
+        this.emit('deviceStarted',
+          {operatingMode: response[2], hwError: response[3], dataCreditAvailable: response[4]}
+        );
         break;
       case responseOpCodes.EVENT_NEW:
         this.emit('eventNew',
@@ -340,7 +342,7 @@ class BLEMeshSerialInterface extends EventEmitter {
 
   valueSet(handle, data, callback) {
     const buf =[3 + data.length, commandOpCodes.VALUE_SET, this._byte(handle, 0), this._byte(handle, 1)];
-    const command = new Buffer(buf.concat(data.reverse())); // Data must be sent in Little Endian format. // TODO: this modifies data!!
+    const command = new Buffer(buf.concat(Array.from(data).reverse()));
 
     this._callback = callback;
     this.writeSerialPort(command);

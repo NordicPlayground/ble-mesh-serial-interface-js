@@ -224,7 +224,7 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
   });
 
   it('prompts slave to get the value of handle 0', done => {
-    const buf = [0x02, 0x01, 0x00];
+    const buf = [0, 1, 2];
 
     bleMeshSerialInterfaceAPI.valueGet(0, (err, res) => {
       checkError(err);
@@ -244,8 +244,6 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
       }
 
       bleMeshSerialInterfaceAPI.valueGet(0, (err, res) => {
-        console.log('res: ', res.data);
-        console.log('buf: ', buf);
         checkError(err);
         assert(arraysEqual([0, 0], res.handle), 'incorrect handle');
         assert(arraysEqual(buf, res.data), 'incorrect value for handle 0');
