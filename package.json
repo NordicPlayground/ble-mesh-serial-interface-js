@@ -1,6 +1,6 @@
 {
   "name": "ble-mesh-serial-interface-js",
-  "version": "0.4.5",
+  "version": "0.5.0",
   "description": "An npm package for Node.js that provides an API to control a router node in a BLE mesh network via the serial port.",
   "main": "index.js",
   "directories": {

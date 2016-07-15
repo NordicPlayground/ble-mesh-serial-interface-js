@@ -229,20 +229,32 @@ class BLEMeshSerialInterface extends EventEmitter {
     const responseOpCode = data[1];
 
     switch(responseOpCode) {
-      case responseOpCodes.DEVICE_STARTED:
+      case responseOpCodes.DEVICE_STARTED: // TODO: return JSON object.
         this.emit('deviceStarted', data.slice(2));
         break;
       case responseOpCodes.EVENT_NEW:
-        this.emit('eventNew', data.slice(2));
+        this.emit('eventNew',
+          { handle: data.slice(2, 4).reverse(),
+            data: data.slice(4).reverse() }
+        );
         break;
       case responseOpCodes.EVENT_UPDATE:
-        this.emit('eventUpdate', data.slice(2));
+        this.emit('eventUpdate',
+          { handle: data.slice(2, 4).reverse(),
+            data: data.slice(4).reverse() }
+        );
         break;
       case responseOpCodes.EVENT_CONFLICTING:
-        this.emit('eventConflicting', data.slice(2));
+        this.emit('eventConflicting',
+          { handle: data.slice(2, 4).reverse(),
+            data: data.slice(4).reverse() }
+        );
         break;
       case responseOpCodes.EVENT_TX:
-        this.emit('eventTX', data.slice(2));
+        this.emit('eventTX',
+          { handle: data.slice(2, 4).reverse(),
+            data: data.slice(4).reverse() }
+        );
         break;
       case responseOpCodes.EVENT_DFU:
         this.emit('eventDFU', data);
