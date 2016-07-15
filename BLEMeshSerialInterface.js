@@ -185,30 +185,27 @@ class BLEMeshSerialInterface extends EventEmitter {
             switch (commandOpCode) {
               case commandOpCodes.FLAG_GET:
                 this._callback(null,
-                  { handle: response.slice(4, 6).reverse(),
-                  flagIndex: response[6],
-                  flagValue: response[7] }
+                  {handle: response.slice(4, 6).reverse(), flagIndex: response[6], flagValue: response[7]}
                 );
                 break;
               case commandOpCodes.VALUE_GET:
                 this._callback(null,
-                  { handle: response.slice(4, 6).reverse(),
-                  data: response.slice(6).reverse() }
+                  {handle: response.slice(4, 6).reverse(), data: response.slice(6).reverse()}
                 );
                 break;
               case commandOpCodes.ACCESS_ADDR_GET:
                 this._callback(null,
-                  { accessAddr: response.slice(4).reverse() }
+                  {accessAddr: response.slice(4).reverse()}
                 );
                 break;
               case commandOpCodes.CHANNEL_GET:
                 this._callback(null,
-                  { channel: response[4] }
+                  {channel: response[4]}
                 );
                 break;
               case commandOpCodes.INTERVAL_MIN_GET:
                 this._callback(null,
-                  { intervalMin: response.slice(4).reverse() }
+                  {intervalMin: response.slice(4).reverse()}
                 );
                 break;
               default: // TODO: do we want to return build version get as an object?
@@ -234,26 +231,22 @@ class BLEMeshSerialInterface extends EventEmitter {
         break;
       case responseOpCodes.EVENT_NEW:
         this.emit('eventNew',
-          { handle: data.slice(2, 4).reverse(),
-            data: data.slice(4).reverse() }
+          {handle: data.slice(2, 4).reverse(), data: data.slice(4).reverse()}
         );
         break;
       case responseOpCodes.EVENT_UPDATE:
         this.emit('eventUpdate',
-          { handle: data.slice(2, 4).reverse(),
-            data: data.slice(4).reverse() }
+          {handle: data.slice(2, 4).reverse(), data: data.slice(4).reverse()}
         );
         break;
       case responseOpCodes.EVENT_CONFLICTING:
         this.emit('eventConflicting',
-          { handle: data.slice(2, 4).reverse(),
-            data: data.slice(4).reverse() }
+          {handle: data.slice(2, 4).reverse(), data: data.slice(4).reverse()}
         );
         break;
       case responseOpCodes.EVENT_TX:
         this.emit('eventTX',
-          { handle: data.slice(2, 4).reverse(),
-            data: data.slice(4).reverse() }
+          {handle: data.slice(2, 4).reverse(), data: data.slice(4).reverse()}
         );
         break;
       case responseOpCodes.EVENT_DFU:
@@ -261,7 +254,7 @@ class BLEMeshSerialInterface extends EventEmitter {
         break;
       default:
           console.log('unknown event response received from slave device: ', response,
-              responseOpCode, responseOpCodeToString(responseOpCode)
+            responseOpCode, responseOpCodeToString(responseOpCode)
           );
     }
   }

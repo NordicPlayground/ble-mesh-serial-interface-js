@@ -38,13 +38,12 @@ describe('helper function tests', function() {
   before(function(done) {
     bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
 
-      /*bleMeshSerialInterfaceAPI.once('deviceStarted', data => {
+      bleMeshSerialInterfaceAPI.once('deviceStarted', data => {
         done();
-      });*/
-      done();
-      /*bleMeshSerialInterfaceAPI.radioReset(err => {
+      });
+      bleMeshSerialInterfaceAPI.radioReset(err => {
         checkError(err)
-      });*/
+      });
     });
   });
 
