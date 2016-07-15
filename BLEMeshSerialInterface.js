@@ -172,16 +172,48 @@ class BLEMeshSerialInterface extends EventEmitter {
     }
 
     const responseOpCode = response[1];
+    const commandOpCode = response[2];
+    const statusCode = response[3];
 
     switch(responseOpCode) {
       case responseOpCodes.ECHO_RSP:
         this._callback(null, this.bufferToArray(response.slice(2)));
         break;
       case responseOpCodes.CMD_RSP:
-        const statusCode = response[3];
         switch(statusCode) {
           case statusCodes.SUCCESS:
-            this._callback(null, response.slice(4));
+            switch (commandOpCode) {
+              case commandOpCodes.FLAG_GET:
+                this._callback(null,
+                  { handle: response.slice(4, 6).reverse(),
+                  flagIndex: response[6],
+                  flagValue: response[7] }
+                );
+                break;
+              case commandOpCodes.VALUE_GET:
+                this._callback(null,
+                  { handle: response.slice(4, 6).reverse(),
+                  data: response.slice(6).reverse() }
+                );
+                break;
+              case commandOpCodes.ACCESS_ADDR_GET:
+                this._callback(null,
+                  { accessAddr: response.slice(4).reverse() }
+                );
+                break;
+              case commandOpCodes.CHANNEL_GET:
+                this._callback(null,
+                  { channel: response[4] }
+                );
+                break;
+              case commandOpCodes.INTERVAL_MIN_GET:
+                this._callback(null,
+                  { intervalMin: response.slice(4).reverse() }
+                );
+                break;
+              default: // TODO: do we want to return build version get as an object?
+                this._callback(null, response.slice(4));
+            }
             break;
           default:
             this._callback(new Error(`received a status code in the command response indicating an error ${statusCodeToString(statusCode)}`), response);
@@ -303,7 +335,7 @@ class BLEMeshSerialInterface extends EventEmitter {
 
   valueSet(handle, data, callback) {
     const buf =[3 + data.length, commandOpCodes.VALUE_SET, this._byte(handle, 0), this._byte(handle, 1)];
-    const command = new Buffer(buf.concat(data.reverse())); // Data must be sent in Little Endian format.
+    const command = new Buffer(buf.concat(data.reverse())); // Data must be sent in Little Endian format. // TODO: this modifies data!!
 
     this._callback = callback;
     this.writeSerialPort(command);
