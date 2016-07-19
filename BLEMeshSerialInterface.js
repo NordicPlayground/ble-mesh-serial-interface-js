@@ -88,7 +88,7 @@ class BLEMeshSerialInterface extends EventEmitter {
     if (typeof baudRate === 'undefined') { baudRate = 115200; }
     if (typeof rtscts === 'undefined') { rtscts = true; }
 
-    this._port = new SerialPort.SerialPort(serialPort, {baudRate: baudRate, rtscts: rtscts}, callback);
+    this._port = new SerialPort(serialPort, {baudRate: baudRate, rtscts: rtscts}, callback);
 
     this._callback;
     this._responseQueue = [];
