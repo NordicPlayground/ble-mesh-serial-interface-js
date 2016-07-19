@@ -404,9 +404,9 @@ class BLEMeshSerialInterface extends EventEmitter {
     this.writeSerialPort(command);
   }
 
-  flagSet(handle, callback) {
+  flagSet(handle, value, callback) {
     const buf = [5, commandOpCodes.FLAG_SET];
-    const command = new Buffer(buf.concat([this._byte(handle, 0), this._byte(handle, 1), 0, 1]));
+    const command = new Buffer(buf.concat([this._byte(handle, 0), this._byte(handle, 1), 0, value]));
 
     this._callback = callback;
     this.writeSerialPort(command);

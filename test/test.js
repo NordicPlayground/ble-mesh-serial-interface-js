@@ -12,7 +12,7 @@ const MESH_ADVERTISING_CHANNEL = 38;
 const MESH_ACCESS_ADDR_ARRAY = [0x8e, 0x89, 0xbe, 0xd6];
 const MESH_INTERVAL_MIN_MS_ARRAY = [0, 0, 0, 100];
 
-const FIRST_COM_PORT = 'COM50';
+const FIRST_COM_PORT = 'COM45';
 
 function checkError(err) {
   if (err) {
@@ -253,7 +253,7 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
   });
 
   it('prompts slave to set the persistence of handle 0', done => {
-    bleMeshSerialInterfaceAPI.flagSet(0, err => {
+    bleMeshSerialInterfaceAPI.flagSet(0, 1, err => {
       if (err) {
         console.log(err);
         assert(false, 'failed to set the persistence flag of handle 1');
@@ -268,6 +268,26 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
       assert(arraysEqual(res.handle, [0, 0]), 'persistence of handle 1 has not been set yet');
       assert(res.flagIndex == 0, 'incorrect flagIndex');
       assert(res.flagValue == 1, 'incorrect flagValue');
+      done();
+    });
+  });
+
+  it('prompts slave to set the persistence of handle 0', done => {
+    bleMeshSerialInterfaceAPI.flagSet(0, 0, err => {
+      if (err) {
+        console.log(err);
+        assert(false, 'failed to set the persistence flag of handle 1');
+      }
+      done();
+    });
+  });
+
+  it('prompts slave to get the persistence of handle 0', done => {
+    bleMeshSerialInterfaceAPI.flagGet(0, (err, res) => {
+      checkError(err);
+      assert(arraysEqual(res.handle, [0, 0]), 'persistence of handle 1 has not been set yet');
+      assert(res.flagIndex == 0, 'incorrect flagIndex');
+      assert(res.flagValue == 0, 'incorrect flagValue');
       done();
     });
   });
