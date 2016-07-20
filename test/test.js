@@ -293,7 +293,7 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
   });
 
   it('prompts slave to set the tx event on handle 0', done => {
-    bleMeshSerialInterfaceAPI.txEventSet(0, err => {
+    bleMeshSerialInterfaceAPI.txEventSet(0, 1, err => {
       if (err) {
         console.log(err);
         assert(false, 'failed to set the tx event on handle 0');
