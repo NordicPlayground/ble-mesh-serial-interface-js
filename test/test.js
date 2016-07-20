@@ -126,6 +126,21 @@ describe('helper function tests', function() {
     res = bleMeshSerialInterfaceAPI.isCommandResponse(resp4);
     expect(res).to.equal(false);
   });
+
+  it('tests bleMeshSerialInterfaceAPI.bytesArrayToUnsignedInt()', () => {
+    const handle1 = [0x0, 0x0];
+    expect(bleMeshSerialInterfaceAPI.bytesArrayToUnsignedInt(handle1)).to.equal(0);
+
+    const handle2 = [0x0, 0x1];
+    expect(bleMeshSerialInterfaceAPI.bytesArrayToUnsignedInt(handle2)).to.equal(1);
+
+    const handle3 = [0xFF, 0xFF];
+    expect(bleMeshSerialInterfaceAPI.bytesArrayToUnsignedInt(handle3)).to.equal(65535);
+
+    const handle4 = [0xFF, 0xFF, 0xFF, 0xFF];
+    expect(bleMeshSerialInterfaceAPI.bytesArrayToUnsignedInt(handle4)).to.equal(4294967295);
+
+  });
 });
 
 
@@ -228,7 +243,7 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
 
     bleMeshSerialInterfaceAPI.valueGet(0, (err, res) => {
       checkError(err);
-      assert(arraysEqual([0, 0], res.handle), 'incorrect handle');
+      expect(0).to.equal(res.handle);
       assert(arraysEqual(buf, res.data), 'incorrect value for handle 0');
       done();
     });
@@ -245,7 +260,7 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
 
       bleMeshSerialInterfaceAPI.valueGet(0, (err, res) => {
         checkError(err);
-        assert(arraysEqual([0, 0], res.handle), 'incorrect handle');
+        assert(arraysEqual(0, res.handle), 'incorrect handle');
         assert(arraysEqual(buf, res.data), 'incorrect value for handle 0');
         done();
       });
@@ -265,7 +280,7 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
   it('prompts slave to get the persistence of handle 0', done => {
     bleMeshSerialInterfaceAPI.flagGet(0, (err, res) => {
       checkError(err);
-      assert(arraysEqual(res.handle, [0, 0]), 'persistence of handle 1 has not been set yet');
+      assert(arraysEqual(res.handle, 0), 'persistence of handle 1 has not been set yet');
       assert(res.flagIndex == 0, 'incorrect flagIndex');
       assert(res.flagValue == 1, 'incorrect flagValue');
       done();
@@ -285,7 +300,7 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
   it('prompts slave to get the persistence of handle 0', done => {
     bleMeshSerialInterfaceAPI.flagGet(0, (err, res) => {
       checkError(err);
-      assert(arraysEqual(res.handle, [0, 0]), 'persistence of handle 1 has not been set yet');
+      assert(arraysEqual(res.handle, 0), 'persistence of handle 1 has not been set yet');
       assert(res.flagIndex == 0, 'incorrect flagIndex');
       assert(res.flagValue == 0, 'incorrect flagValue');
       done();
@@ -333,7 +348,7 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
   it('prompts slave to return its access address', done => {
     bleMeshSerialInterfaceAPI.accessAddrGet((err, res) => {
       checkError(err);
-      assert(arraysEqual(MESH_ACCESS_ADDR_ARRAY, res.accessAddr), 'incorrect mesh access address');
+      assert(arraysEqual(MESH_ACCESS_ADDR, res.accessAddr), 'incorrect mesh access address');
       done();
     });
   });
@@ -350,7 +365,7 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
   it('prompts slave to return its minimum rebroadcasting interval', done => {
     bleMeshSerialInterfaceAPI.intervalMinGet((err, res) => {
       checkError(err);
-      assert(arraysEqual(MESH_INTERVAL_MIN_MS_ARRAY, res.intervalMin), 'incorrect minimum rebroadcasting interval');
+      assert(arraysEqual(MESH_INTERVAL_MIN_MS, res.intervalMin), 'incorrect minimum rebroadcasting interval');
       done();
     });
   });
@@ -454,6 +469,7 @@ describe('nRF Open Mesh self contained serial interface unit tests', () => {
     });
   });
 });
+
 
 /*describe('nRF Open Mesh self contained DFU serial interface unit tests', () => {
   let bleMeshSerialInterfaceAPI;

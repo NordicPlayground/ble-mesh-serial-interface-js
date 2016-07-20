@@ -161,6 +161,22 @@ class BLEMeshSerialInterface extends EventEmitter {
     return ((val >> (8 * index)) & 0xFF);
   }
 
+  bytesArrayToUnsignedInt(array) {
+    array.reverse(); // If handle is 0x01, array is [0x0, 0x1] and really we want array[0] << 8...
+
+    if (array.length > 4) {
+      console.log('error, max length of array to convert to an unsigned int is 4 bytes');
+      return -1;
+    }
+
+    let temp = 0;
+    for (let i = 0; i < array.length; i++) {
+      temp += (array[i] << (i * 8)) >>> 0;
+    }
+
+    return temp;
+  }
+
   _handleCommandResponse(resp) {
     let response = this.bufferToArray(resp);
 
@@ -185,17 +201,17 @@ class BLEMeshSerialInterface extends EventEmitter {
             switch (commandOpCode) {
               case commandOpCodes.FLAG_GET:
                 this._callback(null,
-                  {handle: response.slice(4, 6).reverse(), flagIndex: response[6], flagValue: response[7]}
+                  {handle: this.bytesArrayToUnsignedInt(response.slice(4, 6).reverse()), flagIndex: response[6], flagValue: response[7]}
                 );
                 break;
               case commandOpCodes.VALUE_GET:
                 this._callback(null,
-                  {handle: response.slice(4, 6).reverse(), data: response.slice(6).reverse()}
+                  {handle: this.bytesArrayToUnsignedInt(response.slice(4, 6).reverse()), data: response.slice(6).reverse()}
                 );
                 break;
               case commandOpCodes.ACCESS_ADDR_GET:
                 this._callback(null,
-                  {accessAddr: response.slice(4).reverse()}
+                  {accessAddr: this.bytesArrayToUnsignedInt(response.slice(4).reverse())}
                 );
                 break;
               case commandOpCodes.CHANNEL_GET:
@@ -205,7 +221,7 @@ class BLEMeshSerialInterface extends EventEmitter {
                 break;
               case commandOpCodes.INTERVAL_MIN_GET:
                 this._callback(null,
-                  {intervalMin: response.slice(4).reverse()}
+                  {intervalMin: this.bytesArrayToUnsignedInt(response.slice(4).reverse())}
                 );
                 break;
               default: // TODO: do we want to return build version get as an object?
@@ -233,22 +249,22 @@ class BLEMeshSerialInterface extends EventEmitter {
         break;
       case responseOpCodes.EVENT_NEW:
         this.emit('eventNew',
-          {handle: data.slice(2, 4).reverse(), data: data.slice(4).reverse()}
+          {handle: this.bytesArrayToUnsignedInt(data.slice(2, 4).reverse()), data: data.slice(4).reverse()}
         );
         break;
       case responseOpCodes.EVENT_UPDATE:
         this.emit('eventUpdate',
-          {handle: data.slice(2, 4).reverse(), data: data.slice(4).reverse()}
+          {handle: this.bytesArrayToUnsignedInt(data.slice(2, 4).reverse()), data: data.slice(4).reverse()}
         );
         break;
       case responseOpCodes.EVENT_CONFLICTING:
         this.emit('eventConflicting',
-          {handle: data.slice(2, 4).reverse(), data: data.slice(4).reverse()}
+          {handle: this.bytesArrayToUnsignedInt(data.slice(2, 4).reverse()), data: data.slice(4).reverse()}
         );
         break;
       case responseOpCodes.EVENT_TX:
         this.emit('eventTX',
-          {handle: data.slice(2, 4).reverse(), data: data.slice(4).reverse()}
+          {handle: this.bytesArrayToUnsignedInt(data.slice(2, 4).reverse()), data: data.slice(4).reverse()}
         );
         break;
       case responseOpCodes.EVENT_DFU:
