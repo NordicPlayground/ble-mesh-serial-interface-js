@@ -288,13 +288,12 @@ class BLEMeshSerialInterface extends EventEmitter {
   /* API Methods */
 
   closeSerialPort(callback) {
-    if (this._port.isOpen()) {
-      this._port.close(() => {
-        callback();
-      });
-    } else {
-      callback(new Error('error, there is no serial port currently open'));
-    }
+    this._port.close(err => {
+      if (err) {
+        console.log('error in BLEMeshSerialInterface.closeSerialPort(): ', err);
+      }
+      callback(err);
+    });
   }
 
   openSerialPort(serialPort, callback, baudRate, rtscts) {
@@ -302,10 +301,18 @@ class BLEMeshSerialInterface extends EventEmitter {
     if (typeof rtscts === 'undefined') { rtscts = true; }
 
     if (typeof this._port !== 'undefined') {
-      this.closeSerialPort(err => { this._serialPortInterface(serialPort, callback, baudRate, rtscts); });
-    } else {
-      this._serialPortInterface(serialPort, callback, baudRate, rtscts);
+      if (this._port.isOpen()) {
+        this.closeSerialPort(err => {
+          if (err) {
+            throw err;
+          }
+          this._serialPortInterface(serialPort, callback, baudRate, rtscts);
+        });
+        return;
+      }
     }
+
+    this._serialPortInterface(serialPort, callback, baudRate, rtscts);
   }
 
   writeSerialPort(data) {
