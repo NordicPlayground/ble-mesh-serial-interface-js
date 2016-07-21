@@ -31,29 +31,9 @@ function arraysEqual(arr1, arr2) {
     return true;
 }
 
+const bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface();
+
 describe('helper function tests', function() {
-
-  let bleMeshSerialInterfaceAPI;
-
-  before(function(done) {
-    bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
-
-      bleMeshSerialInterfaceAPI.once('deviceStarted', data => {
-        done();
-      });
-      bleMeshSerialInterfaceAPI.radioReset(err => {
-        checkError(err)
-      });
-    });
-  });
-
-  after(function(done) {
-    bleMeshSerialInterfaceAPI.closeSerialPort(err => {
-      checkError(err);
-      bleMeshSerialInterfaceAPI = null;
-      done();
-    });
-  });
 
   it('tests bleMeshSerialInterfaceAPI.buildResponse() on single command response', () => {
     const resp = new Buffer([0x03, 0x84, 0x74, 0x00]);
@@ -145,10 +125,9 @@ describe('helper function tests', function() {
 
 
 describe('nRF Open Mesh serial interface command unit tests -- tests are not self-contained', () => {
-  let bleMeshSerialInterfaceAPI;
 
   before(function(done) {
-    bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
+    bleMeshSerialInterfaceAPI.openSerialPort(FIRST_COM_PORT, err => {
 
       bleMeshSerialInterfaceAPI.once('deviceStarted', data => {
         done();
@@ -157,14 +136,6 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
       bleMeshSerialInterfaceAPI.radioReset(err => {
         checkError(err)
       });
-    });
-  });
-
-  after(function(done) {
-    bleMeshSerialInterfaceAPI.closeSerialPort(err => {
-      checkError(err);
-      bleMeshSerialInterfaceAPI = null;
-      done();
     });
   });
 
@@ -426,10 +397,9 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
 
 
 describe('nRF Open Mesh self contained serial interface unit tests', () => {
-  let bleMeshSerialInterfaceAPI;
 
   beforeEach(function(done) {
-    bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
+    bleMeshSerialInterfaceAPI.openSerialPort(FIRST_COM_PORT, err => {
 
       bleMeshSerialInterfaceAPI.once('deviceStarted', data => {
         done();
@@ -441,10 +411,9 @@ describe('nRF Open Mesh self contained serial interface unit tests', () => {
     });
   });
 
-  afterEach(function(done) {
+  after(function(done) {
     bleMeshSerialInterfaceAPI.closeSerialPort(err => {
       checkError(err);
-      bleMeshSerialInterfaceAPI = null;
       done();
     });
   });
@@ -472,11 +441,10 @@ describe('nRF Open Mesh self contained serial interface unit tests', () => {
 
 
 /*describe('nRF Open Mesh self contained DFU serial interface unit tests', () => {
-  let bleMeshSerialInterfaceAPI;
 
   beforeEach(function(done) {
     const fwid = [0x11, 0x78, 0xfe, 0xff, 0x64, 0, 1, 1, 0x59, 0, 0, 0, 1, 0, 1, 0, 0, 0];
-    bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
+    bleMeshSerialInterfaceAPI.openSerialPort(FIRST_COM_PORT, err => {
 
       bleMeshSerialInterfaceAPI.once('eventDFU', data => {
         assert(arraysEqual(fwid, data), 'incorrect DFU Beacon (FWID) received from device');
@@ -525,10 +493,9 @@ describe('nRF Open Mesh self contained serial interface unit tests', () => {
 });*/
 
 /*describe('BLE Smart Mesh serial interface command unit tests -- tests are not self-contained', () => {
-  let bleMeshSerialInterfaceAPI;
 
   before(function(done) {
-    bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
+    bleMeshSerialInterfaceAPI.openSerialPort(FIRST_COM_PORT, err => {
       checkError(err);
       bleMeshSerialInterfaceAPI.on('deviceStarted', data => {
       });

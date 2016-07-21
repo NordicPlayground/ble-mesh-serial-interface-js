@@ -82,17 +82,17 @@ const responseOpCodeToString = reverseLookup(responseOpCodes);
 
 
 class BLEMeshSerialInterface extends EventEmitter {
-  constructor(serialPort, callback, baudRate, rtscts) {
+  constructor() {
     super();
 
-    if (typeof baudRate === 'undefined') { baudRate = 115200; }
-    if (typeof rtscts === 'undefined') { rtscts = true; }
-
-    this._port = new SerialPort(serialPort, {baudRate: baudRate, rtscts: rtscts}, callback);
-
     this._callback;
+    this._port;
     this._responseQueue = [];
     this._tempBuildResponse;
+  }
+
+  _serialPortInterface(serialPort, callback, baudRate, rtscts) {
+    this._port = new SerialPort(serialPort, {baudRate: baudRate, rtscts: rtscts}, callback);
 
     this._port.on('data', data => {
       this.buildResponse(data);
@@ -298,20 +298,14 @@ class BLEMeshSerialInterface extends EventEmitter {
   }
 
   openSerialPort(serialPort, callback, baudRate, rtscts) {
-    if (this._port.isOpen()) {
-      return callback(new Error('error, serial port is open and must be closed before calling this function'));
-    }
-
     if (typeof baudRate === 'undefined') { baudRate = 115200; }
     if (typeof rtscts === 'undefined') { rtscts = true; }
 
-    this._port.path = serialPort;
-    this._port.options.baudRate = baudRate;
-    this._port.options.rtscts = rtscts;
-
-    this._port.open(err => {
-      callback(err);
-    });
+    if (typeof this._port !== 'undefined') {
+      this.closeSerialPort(err => { this._serialPortInterface(serialPort, callback, baudRate, rtscts); });
+    } else {
+      this._serialPortInterface(serialPort, callback, baudRate, rtscts);
+    }
   }
 
   writeSerialPort(data) {
@@ -504,5 +498,6 @@ class BLEMeshSerialInterface extends EventEmitter {
     this.writeSerialPort(command);
   }
 }
+
 
 module.exports = BLEMeshSerialInterface;
