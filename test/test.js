@@ -130,11 +130,14 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
     bleMeshSerialInterfaceAPI.openSerialPort(FIRST_COM_PORT, err => {
 
       bleMeshSerialInterfaceAPI.once('deviceStarted', data => {
-        done();
+        console.log('device started')
+        //done();
       });
 
       bleMeshSerialInterfaceAPI.radioReset(err => {
+        console.log('reset')
         checkError(err)
+        done()
       });
     });
   });
@@ -144,7 +147,7 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
 
     bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
       checkError(err);
-      assert(arraysEqual(buf, res), 'echoed data is not equal to what was sent');
+      expect(res.toString()).to.equal(buf.toString());
       done();
     });
   });
@@ -154,7 +157,7 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
 
     bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
       checkError(err);
-      assert(arraysEqual(buf, res), 'echoed data is not equal to what was sent');
+      expect(res.toString()).to.equal(buf.toString());
       done();
     });
   });
@@ -164,7 +167,7 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
 
     bleMeshSerialInterfaceAPI.echo(buf, (err, res) => {
       checkError(err);
-      assert(arraysEqual(buf, res), 'echoed data is not equal to what was sent');
+      expect(res.toString()).to.equal(buf.toString());
       done();
     });
   });
@@ -174,7 +177,7 @@ describe('nRF Open Mesh serial interface command unit tests -- tests are not sel
 
     bleMeshSerialInterfaceAPI.buildVersionGet((err, res) => {
       checkError(err);
-      assert(arraysEqual(buf, res), 'unexpected build version returned');
+      expect(res.toString()).to.equal(buf.toString());
       done();
     });
   });

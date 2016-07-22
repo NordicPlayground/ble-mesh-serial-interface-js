@@ -18,7 +18,9 @@ const MESH_ACCESS_ADDR = 0x8E89BED6;
 const MESH_INTERVAL_MIN_MS = 100;
 const MESH_CHANNEL = 38;
 
-const bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface('COM45', err => {
+const bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface();
+
+bleMeshSerialInterfaceAPI.openSerialPort('COM45', err => {
   bleMeshSerialInterfaceAPI.init(MESH_ACCESS_ADDR, MESH_INTERVAL_MIN_MS, MESH_CHANNEL, err => {
     if (err) {
       console.log(err);
@@ -44,6 +46,7 @@ const bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface('COM45', err => {
     });
   });
 });
+
 ```
 
 ```javascript
@@ -54,7 +57,9 @@ const BLEMeshSerialInterface = require('./BLEMeshSerialInterface');
 const FIRST_COM_PORT = 'COM45';
 const OPTIONAL_SECOND_COM_PORT = 'COM46';
 
-const ble = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
+const bleMeshSerialInterfaceAPI = new BLEMeshSerialInterface();
+
+bleMeshSerialInterfaceAPI.openSerialPort('COM45', err => {
   if (err) {
     console.log(err);
   }
@@ -64,16 +69,14 @@ const ble = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
     if (err) {
       console.log(err);
     }
-    ble.closeSerialPort(() => {
-      ble.openSerialPort(OPTIONAL_SECOND_COM_PORT, err => {
+    ble.openSerialPort(OPTIONAL_SECOND_COM_PORT, err => {
+      if (err) {
+        console.log(err);
+      }
+      ble.echo(buf, (err, res) => {
         if (err) {
           console.log(err);
         }
-        ble.echo(buf, (err, res) => {
-          if (err) {
-            console.log(err);
-          }
-        });
       });
     });
   });
@@ -85,6 +88,9 @@ const ble = new BLEMeshSerialInterface(FIRST_COM_PORT, err => {
 TODO: Improve this.
 
 BLEMeshSerialInterface is defined in 'index.js' and it has public methods for interfacing with the ble mesh device and opening/closing/writing the serial port. It also emits events on specific serial port events and ble mesh events. For now, see /* API Methods */ and /* nRF Open Mesh Serial Interface */ in 'index.js.' For info about the events BLEMeshSerialInterface emits, search 'index.js' for 'this.emit'
+
+* Only one serial port can be opened per instance of BLEMeshSerialInterface. If you have COM1 opened, and then call openSerialPort(COM2), COM1 will be automatically closed.
+* The constructor returns immediately, then to use any commands that send over serial you must explicitly call openSerialPort.
 
 ## Tests
 
