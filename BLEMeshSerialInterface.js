@@ -1,7 +1,7 @@
 'use strict';
 
 const EventEmitter = require('events');
-const SerialPort = require('serialport');
+const SP = require('serialport').SerialPort;
 
 const commandOpCodes = {
   'ECHO': 0x02,
@@ -92,7 +92,7 @@ class BLEMeshSerialInterface extends EventEmitter {
   }
 
   _serialPortInterface(serialPort, callback, baudRate, rtscts) {
-    this._port = new SerialPort(serialPort, {baudRate: baudRate, rtscts: rtscts}, callback);
+    this._port = new SP(serialPort, {baudRate: baudRate, rtscts: rtscts}, callback);
 
     this._port.on('data', data => {
       this.buildResponse(data);
