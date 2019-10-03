@@ -33,6 +33,6 @@
     "mocha": "*"
   },
   "dependencies": {
-    "serialport": "^4.0.1"
+    "serialport": "^7.1.5"
   }
 }
