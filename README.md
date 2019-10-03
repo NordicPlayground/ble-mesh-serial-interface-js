@@ -1,6 +1,8 @@
 ble-mesh-serial-interface-js
 =========
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/NordicPlayground/ble-mesh-serial-interface-js.svg)](https://greenkeeper.io/)
+
 An npm package for Node.js that provides an API to control a router node in a BLE mesh network via the serial port.
 
 ## Installation
